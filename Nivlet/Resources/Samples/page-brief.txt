@@ -1,0 +1,7 @@
+Landing page brief — sample
+
+Audience: independent designers comparing tools.
+Goal: one clear call to action above the fold.
+Tone: calm, specific, no hype.
+Must keep: pricing link in the header, three feature cards.
+Open question: does the hero image need a caption?

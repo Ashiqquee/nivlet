@@ -6,7 +6,7 @@ Address the user as **papi**.
 
 Nivlet is a native Mac edge-panel utility with five tools: instructions, fill-in prompts, original-file references, project pockets and scratchpad. Working features are local and offline. There is no in-app model/provider API, automatic chat reading, clipboard monitoring, auto-paste/send or cloud working library in v1.
 
-The repository currently contains requirements, plans, skills and design references. Do not claim the application, Xcode project, performance targets or acceptance checks are implemented merely because documents describe them.
+The native shell builds and its unit tests pass. The owner's UI/own-prompt requests pulled forward a single persistent SQLite pocket, saved instructions/plain prompts, opt-in named-field parsing, scratchpad autosave with clickable to-dos and staged original-file imports. Normal startup uses the user's library; sample content requires the Debug preview flag. The action rail sits toward the desktop centre on either edge. Multiple pockets, archive/recovery workflows, licensing and outstanding native acceptance checks remain incomplete. See `docs/implementation/ui-audit.md` and `docs/implementation/checklist-refinement.md` for current evidence; do not infer phase completion from implemented groundwork.
 
 ## Read before changing the product
 
@@ -52,6 +52,8 @@ Nivlet is the selected project name. Prices, trial limits, seats, visual identit
 
 - `docs/`: requirements, architecture, skill selection and phase plan.
 - `docs/phases/`: eight phase deliverables; this is the current location.
+- `docs/implementation/`: actual decisions and phase evidence; update them with real results.
+- `Nivlet/`, `NivletTests/`, `Nivlet.xcodeproj`: app source, tests and project (folders are synchronised; new files need no project edits).
 - `.agents/skills/`: existing design skills plus pinned SwiftUI, macOS, Apple HIG, concurrency and testing skills.
 - `.claude/skills/`: relative symlinks to `.agents/skills/` so Claude Code discovers the same skills; not copies.
 - `references/ui-ux/refbox/`: actual screenshots, provenance and interpretation.

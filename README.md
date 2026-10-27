@@ -2,9 +2,9 @@
 
 A native Mac edge panel that keeps reusable instructions, fill-in prompts, reference files and notes beside the AI app you already use.
 
-Click a small screen-edge tab, choose a project pocket, then explicitly copy text or drag a reference file into your working application.
+Click a small screen-edge tab, open your local pocket, then explicitly copy text or drag a reference file into your working application.
 
-**Status:** planning and reference collection. This repository contains requirements, architecture, an eight-phase build plan, agent skills and captured design references. The native application and Xcode project have not been implemented. The owner selected Nivlet as the project name on 27 October 2026.
+**Status:** Native development build with a full-height edge shelf and one persistent local pocket. Users can save their own instructions/plain prompts, optionally fill named blanks, import reference files and keep notes with clickable to-dos. Build and tests pass (40 tests, 71 cases). Multiple pockets and remaining release/acceptance checks are incomplete; see the [UI audit](docs/implementation/ui-audit.md) and [checklist/edge refinement](docs/implementation/checklist-refinement.md). The owner selected Nivlet on 27 October 2026.
 
 ## First-release scope
 
@@ -36,7 +36,16 @@ Distribution is planned through the owner's website with a one-time purchase. Pr
 
 The proposed stack is SwiftUI with focused AppKit bridges, SQLite metadata and app-owned original assets. macOS 14 is a provisional deployment floor; Intel and full-screen support require actual testing.
 
-Start with [Phase 1](docs/phases/phase1_deliverables.md), configure a full Xcode installation and prove focus, open/tuck/pin, display bounds and explicit file handoff before building the complete library. There are no working app build/test commands yet; the phase plan labels its future command examples accordingly.
+Phase 1 needs Xcode 27.1 or later. From the repository root:
+
+```sh
+export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+xcodebuild -project Nivlet.xcodeproj -scheme Nivlet -destination 'platform=macOS' -derivedDataPath build/DerivedData build
+xcodebuild -project Nivlet.xcodeproj -scheme Nivlet -destination 'platform=macOS' -derivedDataPath build/DerivedData test
+open build/DerivedData/Build/Products/Debug/Nivlet.app
+```
+
+Or open `Nivlet.xcodeproj` and press ⌘R. Nivlet runs as a menu-bar accessory with no Dock icon: click the tab at the right screen edge, or open Nivlet again from Spotlight. [Implementation decisions](docs/implementation/decisions.md) and [Phase 1 evidence](docs/implementation/phase1-feasibility.md) record what was chosen and actually tested.
 
 ## UI/UX references
 
@@ -55,12 +64,16 @@ Use the relevant phase and skill references for the task. Record actual verifica
 ## Repository layout
 
 ```text
+Nivlet.xcodeproj          Xcode project (synchronised folders, shared Nivlet scheme)
+Nivlet/                   app source: App, Platform, Features, Domain, Storage, Resources
+NivletTests/              Swift Testing correctness tests
 AGENTS.md                 shared project guidance
 CLAUDE.md                 Claude entry point
 .agents/skills/           local design and native implementation skills
 .claude/skills/           symlinks to .agents/skills for Claude Code discovery
 docs/                     requirements, architecture, guides and phase overview
 docs/phases/              per-phase deliverables
+docs/implementation/      decisions and measured phase evidence
 references/ui-ux/         attributed visual references and capture provenance
 references/skills/        dated skill-selection research
 scripts/                  reference-capture tooling

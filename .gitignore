@@ -73,3 +73,6 @@ node_modules/
 
 # Deliberately tracked: .agents/skills/, docs/, references/, screenshots,
 # capture manifests, shared Xcode schemes, source and dependency lockfiles.
+
+
+docs/implementation

@@ -4,7 +4,7 @@ Implementation plan · updated 27 October 2026
 
 Build a native Mac edge-panel utility in eight phases. First prove the panel and file handoff, then make the five tools work locally, then protect users' data and prepare distribution. Each phase ends with a demonstrable result and recorded evidence.
 
-**Current state:** documentation only. All implementation phases below are **not started**. Creating this plan does not complete any build or release gate.
+**Current state:** The native shell builds and tests pass. The owner's UI and own-prompt requests pulled forward one-pocket SQLite persistence, optional template parsing, scratchpad autosave and staged reference imports from later milestones. This is groundwork, not completion of Phases 2–4. External drag destinations, display/Spaces behavior and other native acceptance gates remain open. See the [current UI audit](implementation/ui-audit.md) and [initial feasibility evidence](implementation/phase1-feasibility.md).
 
 ## Scope and source of truth
 
@@ -23,11 +23,11 @@ Use the PRD's proposed native approach: SwiftUI views, AppKit for the panel/menu
 
 Keep the UI, window behavior and storage separate enough to test exact copying, template parsing, saves and file integrity without driving the whole interface. Use a single local application, not a model service or a web backend for working features. Add dependencies only for an identified need and record their licences/deployment support.
 
-The proposed source layout lives in [the architecture](architecture.md#proposed-source-layout); none of those files exist yet. Create abstractions when needed; the layout does not require a separate framework or service for every folder. Licence-signing private keys belong outside the app and repository.
+The component boundaries live in [the architecture](architecture.md#proposed-source-layout); implemented code lives in `Nivlet/`. Create abstractions when needed; the layout does not require a separate framework or service for every folder. Licence-signing private keys belong outside the app and repository.
 
 ## Local setup observation
 
-Read-only preflight on 26 October 2026 found an Apple silicon host with `/Library/Developer/CommandLineTools` selected. `xcodebuild -version` failed because the active developer directory is not a full Xcode installation. A later review the same day confirmed this on macOS 26.6.2 (25G83) and found no `/Applications/Xcode*.app`. Xcode may still exist elsewhere, but it most likely needs installing.
+Read-only preflight on 26 October 2026 found an Apple silicon host with `/Library/Developer/CommandLineTools` selected. `xcodebuild -version` failed because the active developer directory is not a full Xcode installation. A later review the same day confirmed this on macOS 26.6.2 (25G83) and found no `/Applications/Xcode*.app`. Xcode may still exist elsewhere, but it most likely needs installing. **Resolved 27 October 2026:** Xcode 27.1 (macOS 27.0 SDK, Swift 6.4) is installed and its first-launch components were repaired. Details are in the [Phase 1 evidence](implementation/phase1-feasibility.md#toolchain-setup-log).
 
 **Current macOS:** macOS 27 "Golden Gate" was released on 14 September 2026 and runs only on Apple silicon; the development host is still on macOS 26.6.2. The provisional macOS 14 floor still covers 14 through 27. Intel Macs stop at macOS 26, so Intel support remains possible but is now a shrinking, dead-end audience; decide it with the floor. Build with the current Xcode and macOS 27 SDK, guard macOS 27-only APIs, and test the shell on macOS 27 as well as the floor version before claiming support.
 
@@ -37,7 +37,7 @@ Phase 1 must select/configure an existing full Xcode installation or arrange ins
 
 | Phase | Deliverable | Exit gate | Depends on | Status |
 |---|---|---|---|---|
-| [1 — Native feasibility](phases/phase1_deliverables.md) | Runnable edge panel with copy and sample-file drag | Focus, display behavior and handoff have recorded results | Toolchain setup | Not started |
+| [1 — Native feasibility](phases/phase1_deliverables.md) | Runnable edge panel with copy and sample-file drag | Focus, display behavior and handoff have recorded results | Toolchain setup | In progress |
 | [2 — Durable text tools](phases/phase2_deliverables.md) | One saved pocket, instructions and scratchpad | Exact copy and safe restart/save failure behavior | 1 | Not started |
 | [3 — Templates and references](phases/phase3_deliverables.md) | Complete one-pocket five-tool slice | Template rendering and original-file integrity verified | 2 | Not started |
 | [4 — Pocket workflow](phases/phase4_deliverables.md) | Multiple pockets, search, organisation and deletion recovery | Isolation, switching and Undo/trash work | 3 | Not started |
@@ -74,14 +74,13 @@ Run an early, read-only payment-fee/seller-eligibility assessment during Phase 1
 
 Use meaningful unit/integration tests for parser rules, transaction failures, asset digests, archive validation and licence verification. Use manual/native UI checks for focus, Spaces, drag targets and accessibility. Do not claim external app compatibility based only on unit tests.
 
-After the project and scheme exist, record the actual reproducible build/test commands. The expected form is:
+Build and test commands (run successfully on 27 October 2026 with Xcode 27.1; see [Phase 1 evidence](implementation/phase1-feasibility.md#build-and-test-commands)):
 
 ```sh
-xcodebuild -project Nivlet.xcodeproj -scheme Nivlet -destination 'platform=macOS' build
-xcodebuild -project Nivlet.xcodeproj -scheme Nivlet -destination 'platform=macOS' test
+export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+xcodebuild -project Nivlet.xcodeproj -scheme Nivlet -destination 'platform=macOS' -derivedDataPath build/DerivedData build
+xcodebuild -project Nivlet.xcodeproj -scheme Nivlet -destination 'platform=macOS' -derivedDataPath build/DerivedData test
 ```
-
-These commands are examples for the planned project, not commands already run successfully.
 
 ## Working rules
 

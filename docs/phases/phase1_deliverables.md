@@ -1,6 +1,6 @@
 # Phase 1 — Native feasibility and project foundation
 
-Status: **Not started** · Depends on: working full Xcode toolchain
+Status: **In progress** (build and automated checks pass; manual checks pending; see [evidence](../implementation/phase1-feasibility.md)) · Depends on: working full Xcode toolchain
 
 [Phase overview](../phases.md) · [PRD](../nivlet-product-requirements.md) · [Next: Phase 2](phase2_deliverables.md)
 
@@ -24,12 +24,12 @@ When creating the project, record the Swift language mode, strict-concurrency le
 
 ## Deliverables
 
-- [ ] Buildable native project and documented local run command.
+- [x] Buildable native project and documented local run command. Evidence: [phase1-feasibility.md](../implementation/phase1-feasibility.md#build-and-test-commands).
 - [ ] Single tab/panel, open/tuck/pin and menu-bar fallback.
 - [ ] Sample text editing/copy and sample-file drag/Finder fallback.
 - [ ] Left/right, resize and visible-bounds handling; feasible display settings.
-- [ ] `docs/implementation/phase1-feasibility.md`: tested behaviors, failures and evidence.
-- [ ] `docs/implementation/decisions.md`: provisional architecture/OS floor, display/Space rules, shortcut mechanism, dependency rationale and open signing/commercial questions.
+- [ ] [`docs/implementation/phase1-feasibility.md`](../implementation/phase1-feasibility.md): tested behaviors, failures and evidence. Created; manual interaction results still pending.
+- [x] [`docs/implementation/decisions.md`](../implementation/decisions.md): provisional architecture/OS floor, display/Space rules, shortcut mechanism, dependency rationale and open signing/commercial questions.
 
 Evidence document paths are outputs to create during implementation; they do not exist merely because this plan names them.
 
