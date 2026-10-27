@@ -1,0 +1,75 @@
+# macOS metadata
+.DS_Store
+._*
+.AppleDouble
+.LSOverride
+
+# Xcode: local user state and generated output
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+/DerivedData/
+/build/
+/dist/
+*.xcarchive/
+*.xcresult/
+*.dSYM/
+*.dSYM.zip
+*.app/
+*.dmg
+*.pkg
+
+# Swift Package Manager build output; retain manifests and Package.resolved
+.build/
+.swiftpm/xcode/xcuserdata/
+
+# Python tooling used for reference capture
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Temporary dependencies, browser profiles and caches
+node_modules/
+.npm/
+.cache/
+/tmp/
+/browser-profile/
+
+# Local application data, diagnostics and generated test output
+/local-data/
+/test-output/
+*.log
+*.trace/
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
+
+# Local environment and signing/issuer secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+/secrets/
+.aws/
+*.p12
+*.pfx
+*.p8
+*.private.key
+*.private.pem
+*-private.key
+*-private.pem
+*.mobileprovision
+*.provisionprofile
+
+# Personal editor/agent settings; keep shared instructions and skills tracked
+.idea/
+.claude/settings.local.json
+
+# Deliberately tracked: .agents/skills/, docs/, references/, screenshots,
+# capture manifests, shared Xcode schemes, source and dependency lockfiles.
