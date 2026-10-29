@@ -1,12 +1,12 @@
 # Phase 3 — Fill-in prompts and original-file references
 
-Status: **Not started** · Depends on: Phase 2 persistence gate
+Status: **Local gate passed — 29 October 2026** · [Implementation and evidence](../implementation/phase3-vertical-slice.md) · Phase 1's remaining display/destination checks stay open.
 
 [Phase overview](../phases.md) · [Previous](phase2_deliverables.md) · [Next: Phase 4](phase4_deliverables.md)
 
 ## Outcome
 
-A complete one-pocket vertical slice of all five tools. Templates render predictably and references retain original bytes even after their source files are removed.
+A complete one-pocket workflow for plain prompts, named blanks, references and scratchpad (instructions were merged into Prompts). Templates render predictably and references retain original bytes even after their source files are removed.
 
 ## Build sequence
 
@@ -20,13 +20,13 @@ A complete one-pocket vertical slice of all five tools. Templates render predict
 
 ## Deliverables
 
-- [ ] Template parser/renderer, field UI, preview and safe copy.
-- [ ] Saved templates and separate filled drafts with explicit reset/edit behavior.
-- [ ] App-owned asset store and staged imports with digest-based integrity.
-- [ ] Reference labels/notes, thumbnails/previews, drag and manual attachment fallback.
-- [ ] Explicit failure UI and bounded file handling using provisional PRD size limits.
-- [ ] Parser, render/copy, asset integrity and partial-import tests.
-- [ ] `docs/implementation/phase3-vertical-slice.md`: grammar examples, import outcomes and handoff matrix.
+- [x] Template parser/renderer, field UI, preview and safe copy.
+- [x] Saved templates and separate filled drafts with explicit reset/edit behavior.
+- [x] App-owned asset store and staged imports with digest-based integrity.
+- [x] Reference labels/notes, thumbnails/previews, drag representation and tested Finder/manual attachment fallback.
+- [x] Explicit failure UI and bounded file handling using provisional PRD size limits.
+- [x] Parser, render/copy, asset integrity and partial-import tests.
+- [x] `docs/implementation/phase3-vertical-slice.md`: grammar examples, import outcomes and handoff matrix.
 
 ## Verify
 
@@ -42,7 +42,7 @@ Fill a critique prompt, inspect/copy it, preview a layout reference, drag its fi
 
 ## Exit gate
 
-All five tools work in one pocket. Template correctness and file integrity pass, failed imports are explicit, and at least a tested manual file handoff or Finder fallback is available.
+The one-pocket tools work together. Template correctness and file integrity pass, failed imports are explicit, and at least a tested manual file handoff or Finder fallback is available. Physical drops into external apps and full destination compatibility remain separate evidence, not inferred from the provider test.
 
 ## Scope boundary
 

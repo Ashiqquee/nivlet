@@ -17,8 +17,8 @@ struct LibraryStoreTests {
         let store = LibraryStore(root: folder)
         var value = LibrarySnapshot.empty
         value.pocketName = "My real pocket"
-        value.instructions = [Instruction(id: UUID(), label: "Rules", body: "One\r\nTwo 👩🏽‍💻\0Three", isFavorite: true)]
-        value.prompts = [SavedPrompt(label: "My prompt", source: "Keep {{topic}} literal.\n🙂", usesFields: true), SavedPrompt(label: "Plain", source: "No fields.")]
+        value.prompts = [SavedPrompt(label: "Rules", source: "One\r\nTwo 👩🏽‍💻\0Three", isFavorite: true),
+                         SavedPrompt(label: "My prompt", source: "Keep {{topic}} literal.\n🙂", usesFields: true), SavedPrompt(label: "Plain", source: "No fields.")]
         value.note = "[ ] Next step\n\nKeep spaces  "
         try await store.save(value, revision: 1)
         let reopened = LibraryStore(root: folder)
@@ -170,6 +170,38 @@ struct LibraryStoreTests {
         #expect(sqlite3_step(statement) == SQLITE_ROW)
         #expect(sqlite3_column_int(statement, 0) == 1)
         sqlite3_finalize(statement); sqlite3_close(backup)
+    }
+
+    @Test("Version-two migration merges instructions into prompts after the existing ones")
+    func mergeInstructions() async throws {
+        let folder = root()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        var db: OpaquePointer?
+        #expect(sqlite3_open(folder.appending(path: "library.sqlite").path, &db) == SQLITE_OK)
+        let pocket = UUID(), prompt = UUID(), rule = UUID(), checklist = UUID()
+        let sql = """
+            CREATE TABLE pockets (id TEXT PRIMARY KEY, name TEXT NOT NULL);
+            CREATE TABLE text_items (id TEXT PRIMARY KEY, pocket_id TEXT NOT NULL, kind TEXT NOT NULL CHECK(kind IN ('instruction','prompt')), label TEXT NOT NULL, body TEXT NOT NULL, favorite INTEGER NOT NULL, position INTEGER NOT NULL, uses_fields INTEGER NOT NULL DEFAULT 0);
+            CREATE TABLE scratchpads (pocket_id TEXT PRIMARY KEY, body TEXT NOT NULL);
+            CREATE TABLE reference_items (id TEXT PRIMARY KEY, pocket_id TEXT NOT NULL, label TEXT NOT NULL, note TEXT NOT NULL, display_name TEXT NOT NULL, asset TEXT NOT NULL, is_image INTEGER NOT NULL, position INTEGER NOT NULL);
+            INSERT INTO pockets VALUES ('\(pocket)', 'Existing pocket');
+            INSERT INTO text_items VALUES ('\(rule)', '\(pocket)', 'instruction', 'Writing style', 'Keep {{this}} literal', 1, 0, 0);
+            INSERT INTO text_items VALUES ('\(checklist)', '\(pocket)', 'instruction', 'Checklist', 'Check it', 0, 1, 0);
+            INSERT INTO text_items VALUES ('\(prompt)', '\(pocket)', 'prompt', 'Explain', 'Explain {{topic}}', 0, 0, 1);
+            INSERT INTO scratchpads VALUES ('\(pocket)', '');
+            PRAGMA user_version = 2;
+            """
+        #expect(sqlite3_exec(db, sql, nil, nil, nil) == SQLITE_OK)
+        sqlite3_close(db)
+        let loaded = try await LibraryStore(root: folder).load()
+        #expect(loaded.prompts.map(\.id) == [prompt, rule, checklist])
+        #expect(loaded.prompts[1].source == "Keep {{this}} literal")
+        #expect(loaded.prompts[1].usesFields == false)
+        #expect(loaded.prompts[1].isFavorite)
+        #expect(loaded.prompts[0].usesFields)
+        let snapshots = try FileManager.default.contentsOfDirectory(at: folder.appending(path: "snapshots"), includingPropertiesForKeys: nil)
+        #expect(snapshots.count == 1)
     }
 
     @Test("A newer schema is rejected without changing the database")

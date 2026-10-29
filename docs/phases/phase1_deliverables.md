@@ -12,7 +12,7 @@ A runnable native Mac app with a single screen-edge tab and panel. Prove open/tu
 
 1. Locate/configure full Xcode (current release, with the macOS 27 SDK) and record macOS, hardware, Xcode and SDK versions. Plan test coverage on macOS 27 and on the macOS 14 floor (a VM or second volume is enough for the floor). The initial preflight selected Command Line Tools and could not run `xcodebuild`; do not assume Xcode is absent or silently change global settings.
 2. Create `Nivlet.xcodeproj`, the `Nivlet` Mac scheme and app entry. Use SwiftUI hosted by an AppKit-managed panel. Keep identifiers provisional until branding/signing decisions are made.
-3. Implement one tab, one panel, menu-bar open/quit, left/right placement, resize and Pin. Start with static instruction/template/reference/note examples rather than storage.
+3. Implement one tab, one panel, menu-bar open/quit, left/right placement, resize and Pin. Start with static instruction/template/reference/note examples rather than storage. (Instructions were later merged into prompts, 27 October 2026.)
 4. Exercise keyboard focus, Escape hierarchy and click-away. Edit a sample field before clicking another application; its click must reach it and no text may be typed into the wrong app.
 5. Exercise display bounds, unplug/reconnect if hardware permits, sleep/wake, current Space and full-screen limitations. Add normal desktop/menu-bar fallback for unsupported overlay cases.
 6. Copy sample text explicitly; drag one known sample file and exercise Finder fallback. Do not auto-paste/send or infer receipt by the destination.

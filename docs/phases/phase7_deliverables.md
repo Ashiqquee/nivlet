@@ -12,7 +12,7 @@ A release candidate with locally verified paid entitlement, a working test purch
 
 Prepare a concrete decision sheet before external setup: final price within the US$1–3 target or an explicitly raised alternative, currency/tax presentation, merchant eligibility/fees, trial limits, seat policy, refund/recovery tradeoffs and future-upgrade terms.
 
-The PRD proposes US$2 before applicable tax; one person/two personal Macs; and a non-expiring trial with one pocket, 10 instructions/templates combined and 10 references. Do not silently turn proposals into final commercial terms. Verify current Indian seller onboarding/payout requirements and exact fees during implementation.
+The PRD proposes US$2 before applicable tax; one person/two personal Macs; and a non-expiring trial with one pocket, 10 prompts and 10 references (instructions were merged into prompts on 27 October 2026). Do not silently turn proposals into final commercial terms. Verify current Indian seller onboarding/payout requirements and exact fees during implementation.
 
 Local verifier, test licences, installer scripts and checkout specifications can be prepared before provider accounts or production credentials exist. Selecting a merchant, spending, issuing real paid licences or making external changes requires the applicable task authorisation; document any specific dependency without blocking independent work.
 

@@ -1,10 +1,10 @@
 # Nivlet — build phases
 
-Implementation plan · updated 27 October 2026
+Implementation plan · updated 29 October 2026
 
-Build a native Mac edge-panel utility in eight phases. First prove the panel and file handoff, then make the five tools work locally, then protect users' data and prepare distribution. Each phase ends with a demonstrable result and recorded evidence.
+Build a native Mac edge-panel utility in eight phases. First prove the panel and file handoff, then make the tools work locally, then protect users' data and prepare distribution. Each phase ends with a demonstrable result and recorded evidence.
 
-**Current state:** The native shell builds and tests pass. The owner's UI and own-prompt requests pulled forward one-pocket SQLite persistence, optional template parsing, scratchpad autosave and staged reference imports from later milestones. This is groundwork, not completion of Phases 2–4. External drag destinations, display/Spaces behavior and other native acceptance gates remain open. See the [current UI audit](implementation/ui-audit.md) and [initial feasibility evidence](implementation/phase1-feasibility.md).
+**Current state:** The native shell builds and tests pass. Phase 2's local durability gate passes: saved plain prompts, ordering/deletion Undo, scratchpad autosave, exact copy and failed-save recovery have [recorded evidence](implementation/phase2-persistence.md). Phase 3 now adds [verified named blanks and original-file intake/retry/previews](implementation/phase3-vertical-slice.md), including a tested Finder fallback. Phase 4 remains incomplete. External drag destinations, display/Spaces behavior and other native acceptance gates remain open. See the [current UI audit](implementation/ui-audit.md) and [initial feasibility evidence](implementation/phase1-feasibility.md).
 
 ## Scope and source of truth
 
@@ -13,7 +13,7 @@ Build a native Mac edge-panel utility in eight phases. First prove the panel and
 - [Supplied full brief](https://files.instinct.com/ipl7v9gvfnb3-brief-board-product-requirements): source PRD v0.3.
 - [Refbox](https://ref.box/): design reference; do not copy its artwork or branding.
 
-First release: instructions on tap, fill-in prompts, reference shelf, project pockets and scratchpad. No model/provider API, chat capture, auto-paste/send, OCR, sync or hosted working library. Keep the proposed US$1–3 purchase target; price, trial limits and licence terms remain open rather than silently finalised by this plan.
+First release: prompts (plain or with fill-in blanks), reference shelf, project pockets and scratchpad. Instructions and prompts were merged into one Prompts tool on 27 October 2026 (owner decision; see [decisions](implementation/decisions.md#instructions-merged-into-prompts-27-october-2026)). No model/provider API, chat capture, auto-paste/send, OCR, sync or hosted working library. Keep the proposed US$1–3 purchase target; price, trial limits and licence terms remain open rather than silently finalised by this plan.
 
 ## How to build it
 
@@ -38,8 +38,8 @@ Phase 1 must select/configure an existing full Xcode installation or arrange ins
 | Phase | Deliverable | Exit gate | Depends on | Status |
 |---|---|---|---|---|
 | [1 — Native feasibility](phases/phase1_deliverables.md) | Runnable edge panel with copy and sample-file drag | Focus, display behavior and handoff have recorded results | Toolchain setup | In progress |
-| [2 — Durable text tools](phases/phase2_deliverables.md) | One saved pocket, instructions and scratchpad | Exact copy and safe restart/save failure behavior | 1 | Not started |
-| [3 — Templates and references](phases/phase3_deliverables.md) | Complete one-pocket five-tool slice | Template rendering and original-file integrity verified | 2 | Not started |
+| [2 — Durable text tools](phases/phase2_deliverables.md) | One saved pocket, plain prompts and scratchpad | Exact copy and safe restart/save failure behavior | 1 | Local gate passed; Phase 1 checks remain open |
+| [3 — Templates and references](phases/phase3_deliverables.md) | Complete one-pocket text/reference slice | Template rendering and original-file integrity verified | 2 | Local gate passed; Finder fallback tested |
 | [4 — Pocket workflow](phases/phase4_deliverables.md) | Multiple pockets, search, organisation and deletion recovery | Isolation, switching and Undo/trash work | 3 | Not started |
 | [5 — Ownership and recovery](phases/phase5_deliverables.md) | Portable exports, validated restore and migrations | Clean-install round trip and failure recovery pass | 4 | Not started |
 | [6 — Usable beta](phases/phase6_deliverables.md) | Polished accessible app with measured compatibility | AC-01–AC-06 and AC-08 have evidence | 5 | Not started |
@@ -51,8 +51,8 @@ Run an early, read-only payment-fee/seller-eligibility assessment during Phase 1
 ## What each milestone should feel like
 
 - After Phase 1: click an edge tab, open a panel, copy sample text and return to work.
-- After Phase 2: keep actual instructions and next questions across restarts.
-- After Phase 3: use all five tools within one pocket, with explicit copy and file attachment.
+- After Phase 2: keep actual prompts and next questions across restarts.
+- After Phase 3: use plain/fill-in prompts, references and scratchpad within one pocket, with explicit copy and file attachment.
 - After Phase 4: switch between projects without mixing their material.
 - After Phase 5: move the complete library to a clean installation and recover it safely.
 - After Phase 6: use the app comfortably by keyboard/VoiceOver and on tested displays.
@@ -64,7 +64,7 @@ Run an early, read-only payment-fee/seller-eligibility assessment during Phase 1
 | PRD acceptance check | First exercised | Final release evidence |
 |---|---|---|
 | AC-01 Shell | Phase 1 | Phase 6 |
-| AC-02 Instructions | Phase 2 | Phase 6 |
+| AC-02 Plain prompts | Phase 2 | Phase 6 |
 | AC-03 Templates | Phase 3 | Phase 6 |
 | AC-04 Files | Phase 3 | Phases 5–6 |
 | AC-05 Pockets | Phase 4 | Phase 6 |

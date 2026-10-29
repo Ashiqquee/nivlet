@@ -75,4 +75,9 @@ node_modules/
 # capture manifests, shared Xcode schemes, source and dependency lockfiles.
 
 
-docs/implementation
+# Keep existing implementation working notes local; retain this phase's evidence.
+docs/implementation/*
+!docs/implementation/phase2-persistence.md
+!docs/implementation/phase2-persistence/
+!docs/implementation/phase3-vertical-slice.md
+!docs/implementation/phase3-vertical-slice/

@@ -29,6 +29,7 @@ final class ShellController: NSObject {
 
     @ObservationIgnored private var tabPanel: EdgeTabPanel?
     @ObservationIgnored private var contentPanel: ContentPanel?
+    @ObservationIgnored private var referencePicker: NSOpenPanel?
     @ObservationIgnored private var outsideClickMonitor: Any?
     @ObservationIgnored private var observers: [(NotificationCenter, NSObjectProtocol)] = []
     @ObservationIgnored private var hotKey: GlobalHotKey?
@@ -51,10 +52,13 @@ final class ShellController: NSObject {
     // MARK: Startup
 
     func start() {
+        BackgroundCursor.enable()
+        NSApp.appearance = preferences.appearance.nsAppearance
         let tab = EdgeTabPanel(edge: preferences.edge)
         tab.tabView.onClick = { [weak self] in self?.toggle(source: .tab) }
         tab.tabView.onDrag = { [weak self] y in self?.dragTab(toOriginY: y) }
         tab.tabView.onDragEnded = { [weak self] in self?.finishTabDrag() }
+        tab.tabView.markColors = PanelTool.allCases.map { NSColor($0.tint) }
         tabPanel = tab
 
         let panel = ContentPanel(rootView: PanelRootView(shell: self, kit: kit, model: panelModel))
@@ -62,6 +66,15 @@ final class ShellController: NSObject {
         panel.onEscape = { [weak self] in self?.handleEscape() ?? false }
         panel.onClose = { [weak self] in self?.tuck() }
         contentPanel = panel
+        panel.canPasteReferences = { [weak self] in
+            guard let self else { return false }
+            return self.panelModel.tool == .references && self.panelModel.inspector == nil && self.kit.isLoaded && !self.kit.isPreview && !self.kit.isImporting && ReferencePasteboard.canPaste(from: self.panelModel.transferPasteboard)
+        }
+        panel.onPasteReferences = { [weak self] in
+            guard let self else { return }
+            let sources = ReferencePasteboard.readForExplicitPaste(from: self.panelModel.transferPasteboard)
+            Task { await self.kit.importSources(sources) }
+        }
         panelModel.focusForEditing = { [weak panel] in panel?.makeKey() }
         panel.onFind = { [weak self] in self?.panelModel.searchFocusRequest += 1 }
         panel.onNew = { [weak self] in
@@ -69,6 +82,10 @@ final class ShellController: NSObject {
             if self.panelModel.tool == .references { self.chooseReferenceFiles() }
             else if self.panelModel.tool == .notes { self.panelModel.beginScratchpadTask() }
             else { self.panelModel.beginNew() }
+        }
+        panel.onListKey = { [weak self] key in
+            guard let self else { return false }
+            return self.panelModel.handle(key, kit: self.kit)
         }
         panel.onUndoDelete = { [weak self] in
             guard let self, self.kit.canUndoDelete else { return false }
@@ -79,6 +96,7 @@ final class ShellController: NSObject {
         self.hotKey = hotKey
 
         observe(NotificationCenter.default, NSApplication.didChangeScreenParametersNotification) { $0.displaysChanged() }
+        observe(NotificationCenter.default, NSMenu.didBeginTrackingNotification) { $0.routePasteMenu() }
         let workspace = NSWorkspace.shared.notificationCenter
         observe(workspace, NSWorkspace.didWakeNotification) { $0.displaysChanged() }
         observe(workspace, NSWorkspace.activeSpaceDidChangeNotification) { $0.spaceChanged() }
@@ -122,7 +140,7 @@ final class ShellController: NSObject {
             ? visible.midY
             : EdgeLayout.tabFrame(edge: preferences.edge, position: preferences.tabPosition, in: visible).midY
         let size = panelSize(in: screen)
-        let target = EdgeLayout.panelFrame(edge: preferences.edge, size: size, centreY: centreY, in: visible)
+        let target = EdgeLayout.panelFrame(edge: preferences.edge, size: size, centreY: centreY, in: panelArea(on: screen), flush: preferences.fullHeight)
 
         isOpen = true
         openDisplayID = screen.displayID
@@ -140,7 +158,7 @@ final class ShellController: NSObject {
 
     /// Commits any edit in progress, then slides the panel away and restores the tab.
     func tuck() {
-        guard isOpen, let panel = contentPanel else { return }
+        guard isOpen, !presentingChild, let panel = contentPanel else { return }
         panel.makeFirstResponder(nil)
         kit.flushSoon()
         // Keep unsaved editor drafts recoverable across click-away/tuck.
@@ -264,7 +282,7 @@ final class ShellController: NSObject {
         guard let screen else { return }
         openDisplayID = screen.displayID
         panel.setFrame(
-            EdgeLayout.panelFrame(edge: preferences.edge, size: panelSize(in: screen), centreY: panel.frame.midY, in: screen.visibleFrame),
+            EdgeLayout.panelFrame(edge: preferences.edge, size: panelSize(in: screen), centreY: panel.frame.midY, in: panelArea(on: screen), flush: preferences.fullHeight),
             display: true
         )
     }
@@ -281,35 +299,84 @@ final class ShellController: NSObject {
 
     // MARK: Explicit file selection
 
+    private func routePasteMenu() {
+        guard let panel = contentPanel, let menu = NSApp.mainMenu else { return }
+        let usesReferences = panel.isKeyWindow && panel.canPasteReferences()
+        func route(_ menu: NSMenu) {
+            for item in menu.items {
+                if item.action == #selector(NSText.paste(_:)) { item.target = usesReferences ? panel : nil }
+                if let submenu = item.submenu { route(submenu) }
+            }
+        }
+        route(menu)
+    }
+
     func chooseReferenceFiles() {
+        chooseReferenceFiles(retryID: nil)
+    }
+
+    func chooseReferenceFileForRetry(_ id: UUID) {
+        chooseReferenceFiles(retryID: id)
+    }
+
+    private func chooseReferenceFiles(retryID: UUID?) {
         guard kit.isLoaded, !kit.isPreview, !presentingChild, let panel = contentPanel else { return }
         presentingChild = true
         panel.makeKey()
         let picker = NSOpenPanel()
+        referencePicker = picker
         picker.title = "Add references"
         picker.prompt = "Add files"
         picker.canChooseFiles = true
         picker.canChooseDirectories = false
-        picker.allowsMultipleSelection = true
+        picker.allowsMultipleSelection = retryID == nil
         picker.resolvesAliases = false
-        picker.beginSheetModal(for: panel) { [weak self] result in
+        if let retryID, let original = kit.originalImportURL(retryID) { picker.directoryURL = original.deletingLastPathComponent() }
+        // A system file browser is wider than this utility. An attached sheet
+        // can move/resize its narrow parent; keep it in an independent window.
+        let visible = (panel.screen ?? restingScreen)?.visibleFrame ?? panel.frame
+        let size = CGSize(width: min(820, visible.width - 32), height: min(520, visible.height - 32))
+        picker.setContentSize(size)
+        picker.level = .modalPanel
+        panel.ignoresMouseEvents = true
+        NSApp.activate(ignoringOtherApps: true)
+        picker.begin { [weak self] result in
             guard let self else { return }
+            self.referencePicker = nil
+            panel.ignoresMouseEvents = false
+            panel.orderFrontRegardless()
+            panel.makeKey()
             self.presentingChild = false
             guard result == .OK else { return }
             let urls = picker.urls
             Task {
-                let failures = await self.kit.importFiles(urls)
-                if !failures.isEmpty { self.panelModel.showFeedback(failures.joined(separator: "\n"), isError: true) }
+                if let retryID, let url = urls.first { await self.kit.replaceImportSource(id: retryID, with: url) }
+                else { await self.kit.importFiles(urls) }
             }
         }
+        let frame = picker.frame
+        picker.setFrameOrigin(CGPoint(x: visible.midX - frame.width / 2, y: visible.midY - frame.height / 2))
     }
 
     private func panelSize(in screen: NSScreen) -> CGSize {
         CGSize(width: preferences.panelWidth,
-               height: preferences.fullHeight ? screen.visibleFrame.height - EdgeLayout.panelGap * 2 : preferences.panelHeight)
+               height: preferences.fullHeight ? panelArea(on: screen).height : preferences.panelHeight)
+    }
+
+    /// Where the panel may sit: the usable area, plus the Dock's strip when a
+    /// full-height panel is docked and the Dock isn't currently showing.
+    private func panelArea(on screen: NSScreen) -> CGRect {
+        guard preferences.fullHeight else { return screen.visibleFrame }
+        return EdgeLayout.dockingArea(visible: screen.visibleFrame, screen: screen.frame,
+                                      bottomDockShowing: screen.isBottomDockShowing)
     }
 
     // MARK: Settings
+
+    func setAppearance(_ appearance: PanelAppearance) {
+        preferences.appearance = appearance
+        NSApp.appearance = appearance.nsAppearance
+    }
 
     func setFullHeight(_ value: Bool) {
         preferences.fullHeight = value
@@ -367,7 +434,7 @@ final class ShellController: NSObject {
         guard let screen else { return }
         let size = panelSize(in: screen)
         panel.setFrame(
-            EdgeLayout.panelFrame(edge: preferences.edge, size: size, centreY: panel.frame.midY, in: screen.visibleFrame),
+            EdgeLayout.panelFrame(edge: preferences.edge, size: size, centreY: panel.frame.midY, in: panelArea(on: screen), flush: preferences.fullHeight),
             display: true,
             animate: !Self.reduceMotion
         )
@@ -378,13 +445,30 @@ extension ShellController: NSWindowDelegate {
     /// Command-Tab or clicking another app's window while editing tucks an unpinned panel.
     func windowDidResignKey(_ notification: Notification) {
         guard isOpen, !isPinned, !presentingChild else { return }
-        tuck()
+        // AppKit can resign the parent before SwiftUI's confirmation window
+        // becomes key. Decide after that transition, preserving sheets/alerts.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.isOpen, !self.isPinned, !self.presentingChild,
+                  let panel = self.contentPanel, !panel.isKeyWindow,
+                  panel.attachedSheet == nil, NSApp.modalWindow == nil else { return }
+            if let key = NSApp.keyWindow, key !== panel { return }
+            self.tuck()
+        }
+    }
+
+    func windowWillBeginSheet(_ notification: Notification) {
+        presentingChild = true
+    }
+
+    func windowDidEndSheet(_ notification: Notification) {
+        presentingChild = false
+        updateOutsideClickMonitor()
     }
 
     func windowDidEndLiveResize(_ notification: Notification) {
         guard let panel = contentPanel else { return }
         preferences.panelWidth = panel.frame.width
-        if let screen = panel.screen, abs(panel.frame.height - (screen.visibleFrame.height - EdgeLayout.panelGap * 2)) > 4 {
+        if let screen = panel.screen, abs(panel.frame.height - panelArea(on: screen).height) > 4 {
             preferences.fullHeight = false
         }
         preferences.panelHeight = panel.frame.height
@@ -396,6 +480,27 @@ extension ShellController: NSWindowDelegate {
 extension NSScreen {
     var displayID: UInt32? {
         (deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
+    }
+
+    /// Whether the Dock is drawn along this display's bottom edge right now. Uses
+    /// window positions and levels only; no window titles or permissions.
+    var isBottomDockShowing: Bool {
+        let reserved = visibleFrame.minY - frame.minY
+        guard reserved > 8 else { return false } // Dock hidden, or on a side.
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? frame.height
+        // The Dock strip in window-list coordinates (origin top left).
+        let strip = CGRect(x: frame.minX, y: primaryHeight - visibleFrame.minY, width: frame.width, height: reserved)
+        let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+        return windows.contains { window in
+            // The Dock's desktop-level backdrop windows sit below normal windows; only a Dock
+            // window above them (the visible Dock itself) counts.
+            guard let layer = window[kCGWindowLayer as String] as? Int, layer > 0,
+                  let pid = window[kCGWindowOwnerPID as String] as? pid_t,
+                  NSRunningApplication(processIdentifier: pid)?.bundleIdentifier == "com.apple.dock",
+                  let bounds = window[kCGWindowBounds as String] as? [String: CGFloat] else { return false }
+            let rect = CGRect(x: bounds["X"] ?? 0, y: bounds["Y"] ?? 0, width: bounds["Width"] ?? 0, height: bounds["Height"] ?? 0)
+            return rect.intersects(strip)
+        }
     }
 
     static var underPointer: NSScreen? {

@@ -6,7 +6,7 @@ Proposed implementation architecture · updated 27 October 2026 · application n
 
 ## Purpose and constraints
 
-A native Mac utility opens from a configurable edge tab and keeps a small project kit beside an existing AI app. The five tools are instructions, fill-in prompts, reference files, pockets and scratchpad. Users choose what to copy or attach.
+A native Mac utility opens from a configurable edge tab and keeps a small project kit beside an existing AI app. The four tools are prompts (plain or with optional fill-in blanks; instructions merged into prompts on 27 October 2026), reference files, pockets and scratchpad. Users choose what to copy or attach.
 
 Build one desktop application. No working-feature backend, embedded model, provider SDK, webview UI, chat integration or automatic disclosure is required. Website payment, signed licence delivery and optional update checks are separate distribution concerns.
 
@@ -71,7 +71,7 @@ Nivlet/
   App/             entry point, startup, dependency composition
   Platform/        shell, screens, clipboard, Quick Look, drag, settings
   Features/
-    Instructions/
+    Panel/           shared shelf, commands, editor and style tokens
     Prompts/
     References/
     Pockets/
@@ -90,8 +90,7 @@ Keep files/types small enough to understand. An app state object is not an excus
 | Record | Key relationships and fields |
 |---|---|
 | Pocket | Stable UUID, name, order, timestamps and current local view |
-| Instruction | UUID, required pocket ID, label, reviewed body, favourite, order |
-| Template | UUID, pocket ID, label, source, ordered unique field definitions |
+| Prompt | UUID, required pocket ID, label, reviewed source, favourite, order, uses-blanks flag; ordered unique field definitions when blanks are on. Stored in `text_items`; schema v3 migrated every former instruction row to a plain prompt |
 | Filled draft | Template/pocket identity, current values, revision; separate from saved source |
 | Reference | UUID, pocket ID, label, note, asset ID, order |
 | Asset | Digest, original bytes, detected type/size, safe relative storage path; per-reference display name retained separately where needed |
@@ -125,17 +124,21 @@ Keep AppKit and presentation changes on the main actor. Serialise metadata write
 
 Autosave is debounced by at most the PRD's 500 ms, then flushed on the specified lifecycle boundaries. Report Saved only after the relevant durable commit completes. Keep last-good data plus a visible recoverable failure; a UI delay must not be mistaken for a successful write.
 
+**Implemented in Phase 2 (28 October 2026):** schema 4 journals a pending snapshot in a separate durable SQLite transaction before replacing the one-pocket library. The successful library transaction removes that intent atomically. Startup presents pending content for review with persistent Retry; routine focus/tuck flushes cannot accept it automatically. Autosave debounces at 300 ms. Copy preserves reviewed CRLF/CR/LF and Unicode unchanged. See [implementation, failure boundaries and measured evidence](implementation/phase2-persistence.md).
+
 The journal, filesystem and SQLite have different failure boundaries. Startup recovery reconciles staged operations and orphans before destructive cleanup. Specify and test interruption points rather than describing a database transaction as an atomic file copy.
+
+**Implemented in Phase 3 (29 October 2026):** `ReferenceAssetStore` stages/hashes/synchronises original bytes on a separate actor before the metadata commit. Per-file outcomes distinguish saved items, pending metadata, failures and large-file confirmation. Failed source grants can be replaced through the native picker; retries preserve successful IDs. Standard responder-chain paste consumes explicit file/image input, and bounded static previews never execute active content. Outgoing transfers prepare independent digest-verified export copies off-main. See [Phase 3 evidence and handoff limits](implementation/phase3-vertical-slice.md).
 
 ## Important flows
 
-### Save and copy an instruction
+### Save and copy a prompt
 
-Validate non-empty content → persist the current revision → show save outcome. A deliberate Copy action obtains the exact reviewed body, applies only documented line-ending normalisation and writes it to the clipboard. Display “Text copied,” never “Sent.” No title, note, file path or marketing is appended.
+Validate non-empty content → persist the current revision → show save outcome. A deliberate Copy action obtains the exact reviewed body, applies only documented line-ending normalisation and writes it to the clipboard. Display “Copied to clipboard,” never “Sent.” No title, note, file path or marketing is appended.
 
-### Fill a prompt
+### Fill a prompt's blanks
 
-Parse saved source into literal spans and explicit field tokens. Repeated field names share a value. Reject malformed syntax when saving. Render by substituting values as literal text, without running a second token parse. Show that same rendered value in preview and copy it only when required fields are complete. Reset/edit warnings affect the draft, not saved source.
+Applies only to prompts with named blanks turned on. Parse saved source into literal spans and explicit field tokens. Repeated field names share a value. Reject malformed syntax when saving. Render by substituting values as literal text, without running a second token parse. Show that same rendered value in preview and copy it only when required fields are complete. Reset/edit warnings affect the draft, not saved source.
 
 Keep brace escaping and naming rules in one parser rather than duplicating regex behavior in the editor, preview and copy action.
 

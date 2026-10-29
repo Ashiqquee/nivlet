@@ -72,4 +72,25 @@ struct EdgeLayoutTests {
         #expect(laptop.contains(moved))
         #expect(moved.maxX == laptop.maxX - EdgeLayout.panelGap)
     }
+
+    @Test("A flush full-height panel fills the usable height against its edge", arguments: ScreenEdge.allCases)
+    func flushPanel(edge: ScreenEdge) {
+        let frame = EdgeLayout.panelFrame(edge: edge, size: CGSize(width: 380, height: laptop.height), centreY: laptop.midY, in: laptop, flush: true)
+        #expect(frame.minY == laptop.minY)
+        #expect(frame.maxY == laptop.maxY)
+        switch edge {
+        case .left: #expect(frame.minX == laptop.minX)
+        case .right: #expect(frame.maxX == laptop.maxX)
+        }
+    }
+
+    @Test("A docked panel takes back the Dock strip only while the Dock isn't showing")
+    func dockStrip() {
+        let screen = CGRect(x: 0, y: 0, width: 1470, height: 956)
+        let visible = CGRect(x: 0, y: 59, width: 1470, height: 864)
+        #expect(EdgeLayout.dockingArea(visible: visible, screen: screen, bottomDockShowing: true) == visible)
+        let hidden = EdgeLayout.dockingArea(visible: visible, screen: screen, bottomDockShowing: false)
+        #expect(hidden.minY == screen.minY)
+        #expect(hidden.maxY == visible.maxY)
+    }
 }

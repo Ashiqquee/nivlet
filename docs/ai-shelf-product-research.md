@@ -1,5 +1,7 @@
 # Nivlet — research and release scope
 
+> **Historical research.** Written before 27 October 2026, when the owner merged “Instructions on tap” and “Fill-in prompts” into one Prompts tool. Read [the product requirements](nivlet-product-requirements.md) for the current scope.
+
 Updated 27 October 2026 · based on the original Brief Board PRD v0.3
 
 ## Current direction and references

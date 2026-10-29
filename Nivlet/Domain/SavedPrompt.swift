@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct SavedPrompt: Identifiable, Equatable, Sendable {
+nonisolated struct SavedPrompt: Identifiable, Equatable, Sendable, Codable {
     var id = UUID()
     var label: String
     var source: String
@@ -12,13 +12,12 @@ nonisolated struct SavedPrompt: Identifiable, Equatable, Sendable {
     }
 }
 
-nonisolated struct LibrarySnapshot: Equatable, Sendable {
+nonisolated struct LibrarySnapshot: Equatable, Sendable, Codable {
     var pocketID: UUID
     var pocketName: String
-    var instructions: [Instruction]
     var prompts: [SavedPrompt]
     var references: [ReferenceItem]
     var note: String
 
-    static let empty = LibrarySnapshot(pocketID: UUID(), pocketName: "My pocket", instructions: [], prompts: [], references: [], note: "")
+    static var empty: LibrarySnapshot { LibrarySnapshot(pocketID: UUID(), pocketName: "My pocket", prompts: [], references: [], note: "") }
 }

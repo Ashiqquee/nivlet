@@ -12,6 +12,19 @@ final class ContentPanel: NSPanel {
     var onFind: () -> Void = {}
     var onNew: () -> Void = {}
     var onUndoDelete: () -> Bool = { false }
+    var canPasteReferences: () -> Bool = { false }
+    var onPasteReferences: () -> Void = {}
+
+    @objc func paste(_ sender: Any?) {
+        if canPasteReferences() { onPasteReferences() }
+    }
+
+    override func validateUserInterfaceItem(_ item: any NSValidatedUserInterfaceItem) -> Bool {
+        if item.action == #selector(paste(_:)) { return canPasteReferences() }
+        return super.validateUserInterfaceItem(item)
+    }
+    /// Launcher-style list keys. Returns `true` when the shelf used the key.
+    var onListKey: (ShelfKey) -> Bool = { _ in false }
 
     init<Content: View>(rootView: Content) {
         super.init(
@@ -58,10 +71,31 @@ final class ContentPanel: NSPanel {
             let composing = (firstResponder as? NSTextView)?.hasMarkedText() ?? false
             if !composing, onEscape() { return }
         }
+        // Arrow keys and Return drive the shelf list while the search field (a
+        // single-line field editor) or no text view has focus. Multi-line
+        // editors and input-method composition keep their normal behavior.
+        if event.type == .keyDown,
+           event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting([.capsLock, .numericPad, .function]).isEmpty {
+            let key: ShelfKey? = switch event.keyCode {
+            case 126: .up
+            case 125: .down
+            case 36, 76: .enter
+            default: nil
+            }
+            let textView = firstResponder as? NSTextView
+            let editingText = textView.map { $0.hasMarkedText() || !$0.isFieldEditor } ?? false
+            if let key, !editingText, onListKey(key) { return }
+        }
         super.sendEvent(event)
     }
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let pasteFlags = event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting(.capsLock)
+        if pasteFlags == .command, event.charactersIgnoringModifiers?.lowercased() == "v", canPasteReferences() {
+            // Keep the standard, user-initiated paste: action as the platform
+            // boundary; file/image data never comes from a custom paste button.
+            return NSApp.sendAction(#selector(paste(_:)), to: self, from: self)
+        }
         if super.performKeyEquivalent(with: event) { return true }
         // An accessory app may not be active while this panel is key, so the
         // standard editing commands are routed here as well as the main menu.
@@ -77,6 +111,16 @@ final class ContentPanel: NSPanel {
         default: nil
         }
         if flags == .command, key == "f" { onFind(); return true }
+        let listKey: ShelfKey? = switch (flags, key) {
+        case (.command, "k"): .actions
+        case (.command, "o"): .open
+        case (.command, "e"): .edit
+        case (.command, "d"): .duplicate
+        case ([.command, .shift], "f"): .favorite
+        case (.command, _) where event.keyCode == 51: .delete
+        default: nil
+        }
+        if let listKey, onListKey(listKey) { return true }
         if flags == .command, key == "n" { onNew(); return true }
         if let action {
             if NSApp.sendAction(action, to: nil, from: self) { return true }

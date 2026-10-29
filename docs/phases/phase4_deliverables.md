@@ -10,9 +10,9 @@ Users switch between complete project kits, find the right item quickly and orga
 
 ## Build sequence
 
-1. Add pocket create, rename, reorder, duplicate and switch. Each owns its instructions/templates/references and one scratchpad.
+1. Add pocket create, rename, reorder, duplicate and switch. Each owns its prompts, references and one scratchpad.
 2. Flush edits on switching and restore view/scroll where practical. Keep filled drafts scoped to their template/pocket; switching must not leak values into another kit.
-3. Implement search over labels, instruction/template bodies and reference notes in the active pocket. Add clearly indicated All pockets scope; choosing a result changes the local pocket when necessary.
+3. Implement search over labels, prompt bodies and reference notes in the active pocket. Add clearly indicated All pockets scope; choosing a result changes the local pocket when necessary.
 4. Finish favourites, reorder, independent duplication and explicit move between pockets with menu alternatives to drag.
 5. Implement confirmation and seven-day recoverable trash for pocket deletion; single-item Undo. Preserve assets referenced by trash or pending operations.
 6. Add clear empty/no-result states and safe behavior when deleting/moving an active item. No nested hierarchy or live cross-pocket links is required.
@@ -36,7 +36,7 @@ Check asset lifetime when two independent references share a digest: deleting on
 
 ## Demo
 
-Switch between Website and Writing pockets containing similar labels, retrieve the intended instruction, move a reference explicitly and recover a deleted pocket. The existing AI application remains untouched.
+Switch between Website and Writing pockets containing similar labels, retrieve the intended prompt, move a reference explicitly and recover a deleted pocket. The existing AI application remains untouched.
 
 ## Exit gate
 

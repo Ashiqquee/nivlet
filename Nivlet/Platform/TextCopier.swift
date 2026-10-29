@@ -2,8 +2,8 @@ import AppKit
 
 /// Writes reviewed text to a pasteboard. It never reads the pasteboard and never pastes.
 enum TextCopier {
-    /// Text exactly as it will be written. Phase 1 copies the reviewed string unchanged;
-    /// Phase 2 decides the documented line-ending normalisation and applies it here only.
+    /// Phase 2 policy: preserve the reviewed string, including CRLF, CR and LF.
+    /// No trimming, Unicode normalisation or line-ending conversion is applied.
     static func prepared(_ text: String) -> String {
         text
     }

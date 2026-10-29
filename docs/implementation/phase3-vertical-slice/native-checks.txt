@@ -1,0 +1,149 @@
+Observed native checks. Test-harness corrections and limits are described in ../phase3-vertical-slice.md.
+
+PASS Find New prompt
+PASS Press New prompt
+PASS Focus Title
+PASS Native text matches Title
+PASS Focus Prompt text
+PASS Native text matches Prompt text
+PASS Named blanks toggle is available
+PASS Enable named blanks
+PASS Find Save
+PASS Press Save
+PASS Malformed source shows diagnostics and stays in editor
+PASS Focus Prompt text
+PASS Native text matches Prompt text
+PASS Find Save
+PASS Press Save
+PASS Find Phase 3 critique
+PASS Press Phase 3 critique
+PASS Copy is unavailable while required fields are missing
+PASS Focus Page
+PASS Native text matches Page
+PASS Focus Audience
+PASS Native text matches Audience
+PASS Native rendered preview matches completed text
+PASS Find Copy prompt
+PASS Press Copy prompt
+PASS Native Copy equals preview on named test pasteboard
+PASS Find Reset
+PASS Press Reset
+PASS Find Keep values
+PASS Press Keep values
+PASS Cancel Reset retains filled values
+PASS Find Reset
+PASS Press Reset
+PASS Find Reset fields
+PASS Press Reset fields
+PASS Confirmed Reset blocks Copy again
+PASS Find References
+PASS Press References
+PASS Explicit native Command-V imports files and reports partial failure
+PASS Partial failure offers Retry failed
+PASS Find Retry failed
+PASS Press Retry failed
+PASS Find Choose Retry me.txt again
+PASS Press Choose Retry me.txt again
+PASS Find Add files
+PASS Press Add files
+PASS Retry/reselection imports only the failed file
+PASS Find Dismiss import results
+PASS Press Dismiss import results
+PASS Find Preview Layout reference ✅
+PASS Press Preview Layout reference ✅
+PASS Focus Reference label
+PASS Native text matches Reference label
+PASS Focus Reference note
+PASS Native text matches Reference note
+PASS Find Copy note
+PASS Press Copy note
+PASS Copy note is independent of original file
+PASS Find References
+PASS Press References
+PASS Explicit native image paste imports original PNG bytes
+PASS Find Dismiss import results
+PASS Press Dismiss import results
+PASS Find Scratchpad
+PASS Press Scratchpad
+PASS Find Edit text
+PASS Press Edit text
+PASS Focus Scratchpad text
+PASS Native text matches Scratchpad text
+PASS Quit immediately after updating the pocket note
+PASS Pocket note flushed before quit
+PASS Find References
+PASS Press References
+PASS A newly selected original file imports with fresh access
+PASS Find Dismiss import results
+PASS Press Dismiss import results
+PASS Find References
+PASS Press References
+PASS Native Edit menu is available
+PASS Open Edit menu
+PASS Standard Paste command is available
+PASS Invoke Edit ▸ Paste
+PASS Native Edit ▸ Paste imports an image
+PASS Find Dismiss import results
+PASS Press Dismiss import results
+PASS Find Open Nivlet
+PASS Press Open Nivlet
+PASS Find Scratchpad
+PASS Press Scratchpad
+PASS Find Edit text
+PASS Press Edit text
+PASS Focus Scratchpad text
+PASS Native text matches Scratchpad text
+PASS Quit immediately after updating the pocket note
+PASS Pocket note flushed before quit
+PASS Native five-reference library retains exact original bytes/digests and independent labels/notes
+PASS Saved prompt source remains a template after fill/copy/Reset
+PASS Pocket scratchpad committed before native quit
+PASS Removed only disposable source fixtures before native restart
+PASS Find Prompts
+PASS Press Prompts
+PASS Saved template survived relaunch
+PASS Find Scratchpad
+PASS Press Scratchpad
+PASS Pocket note survived relaunch
+PASS Find References
+PASS Press References
+PASS Renamed reference survived source removal and relaunch
+PASS Find Preview Renamed layout reference
+PASS Press Preview Renamed layout reference
+PASS Reference note survived relaunch
+PASS Find References
+PASS Press References
+PASS Find Preview Renamed layout reference
+PASS Press Preview Renamed layout reference
+PASS Find Reveal in Finder
+PASS Press Reveal in Finder
+PASS Requested manual attachment fallback through Finder
+PASS Finder opened the disposable export folder and exposed its original filename
+PASS Finder's export copy matches original bytes after source fixtures were removed
+PASS Finder version: 26.4
+PASS Find Prompts
+PASS Press Prompts
+PASS Saved template survived relaunch
+PASS Find Scratchpad
+PASS Press Scratchpad
+PASS Pocket note survived relaunch
+PASS Find References
+PASS Press References
+PASS Renamed reference survived source removal and relaunch
+PASS Find Preview Renamed layout reference
+PASS Press Preview Renamed layout reference
+PASS Reference note survived relaunch
+PASS Native text preview uses original text after type validation
+PASS Find References
+PASS Press References
+PASS Find Pin panel
+PASS Press Pin panel
+PASS Focus references before native Paste
+PASS Missing source is explicitly reported without a broken reference
+PASS Find Choose Permission test.txt again
+PASS Press Choose Permission test.txt again
+PASS Find Cancel
+PASS Press Cancel
+PASS Picker Cancel preserves the failed request and shelf state
+PASS Footer Actions label stays on one line at 320 pt; native window capture inspected
+PASS Final suite: 78 tests / 135 cases, zero failed/skipped, no runtime warnings

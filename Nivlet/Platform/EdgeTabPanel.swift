@@ -39,12 +39,16 @@ final class EdgeTabView: NSView {
     /// Called with the proposed window origin y while dragging.
     var onDrag: (CGFloat) -> Void = { _ in }
     var onDragEnded: () -> Void = {}
+    /// One dot per tool, top to bottom, in the tools' accent hues.
+    var markColors: [NSColor] = [.systemOrange, .systemBlue, .systemGreen] {
+        didSet { updateHandle(animated: false) }
+    }
 
     private var mouseDownScreenY: CGFloat?
     private var windowStartY: CGFloat = 0
     private var isDragging = false
     private let surfaceLayer = CAShapeLayer()
-    private let gripLayer = CAShapeLayer()
+    private let dotLayers = (0..<3).map { _ in CALayer() }
     private let chevronLayer = CALayer()
     private var isHovered = false
 
@@ -53,13 +57,17 @@ final class EdgeTabView: NSView {
         super.init(frame: CGRect(origin: .zero, size: EdgeLayout.tabHitSize))
         wantsLayer = true
         layer?.addSublayer(surfaceLayer)
-        layer?.addSublayer(gripLayer)
+        dotLayers.forEach { layer?.addSublayer($0) }
         layer?.addSublayer(chevronLayer)
+        #if DEBUG
+        // Capture hook: `-NivletTabHover YES` draws the hover state without moving the pointer.
+        isHovered = UserDefaults.standard.bool(forKey: "NivletTabHover")
+        #endif
         updateHandle(animated: false)
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
         setAccessibilityLabel("Open Nivlet")
-        setAccessibilityHelp("Opens your instructions, prompts, references and notes.")
+        setAccessibilityHelp("Opens your prompts, references and scratchpad.")
         toolTip = "Open Nivlet"
     }
 
@@ -76,13 +84,18 @@ final class EdgeTabView: NSView {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
-        addTrackingArea(NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self))
+        addTrackingArea(NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .cursorUpdate, .activeAlways, .inVisibleRect], owner: self))
     }
 
+    // This panel never becomes key, so cursor rectangles alone would not apply.
     override func resetCursorRects() { addCursorRect(bounds, cursor: .pointingHand) }
+    override func cursorUpdate(with event: NSEvent) { if !isDragging { NSCursor.pointingHand.set() } }
 
-    override func mouseEntered(with event: NSEvent) { setHovered(true) }
-    override func mouseExited(with event: NSEvent) { setHovered(false) }
+    override func mouseEntered(with event: NSEvent) { setHovered(true); NSCursor.pointingHand.set() }
+    override func mouseExited(with event: NSEvent) {
+        setHovered(false)
+        if !isDragging { NSCursor.arrow.set() }
+    }
 
     private func setHovered(_ hovered: Bool) {
         isHovered = hovered
@@ -116,6 +129,7 @@ final class EdgeTabView: NSView {
         defer {
             mouseDownScreenY = nil; isDragging = false
             window?.invalidateCursorRects(for: self)
+            if isHovered { NSCursor.pointingHand.set() } else { NSCursor.arrow.set() }
         }
         if isDragging {
             onDragEnded()
@@ -124,46 +138,69 @@ final class EdgeTabView: NSView {
         }
     }
 
-    /// A quiet grip at rest; the inward arrow appears only during deliberate hover.
-    /// Path and opacity animations retarget their current presentation values.
+    /// Three tool dots at rest. On deliberate hover the tab deepens and the dots
+    /// gather into its centre, where the inward chevron grows in.
+    /// Animations retarget their current presentation values.
     private func updateHandle(animated: Bool) {
         guard layer != nil else { return }
-        let depth: CGFloat = isHovered ? 18 : EdgeLayout.tabVisibleSize.width
+        let depth: CGFloat = isHovered ? 20 : EdgeLayout.tabVisibleSize.width
         let height = EdgeLayout.tabVisibleSize.height
         let radius: CGFloat = 8
         let x = edge == .right ? bounds.maxX - depth : bounds.minX - radius
         let rect = CGRect(x: x, y: bounds.midY - height / 2, width: depth + radius, height: height)
         let path = CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil)
-        let gripX = edge == .right ? bounds.maxX - 5 : bounds.minX + 5
-        let grip = CGPath(roundedRect: CGRect(x: gripX - 1, y: bounds.midY - 7, width: 2, height: 14),
-                          cornerWidth: 1, cornerHeight: 1, transform: nil)
-        let arrowAlpha: Float = isHovered ? 1 : 0
+        let centreX = edge == .right ? bounds.maxX - depth / 2 : bounds.minX + depth / 2
+        let centre = CGPoint(x: centreX, y: bounds.midY)
+        let dotSize: CGFloat = 3.5, dotSpacing: CGFloat = 6
+        let dotTransform = isHovered ? CATransform3DMakeScale(0.3, 0.3, 1) : CATransform3DIdentity
+        let arrowTransform = isHovered ? CATransform3DIdentity : CATransform3DMakeScale(0.5, 0.5, 1)
+        let dotAlpha: Float = isHovered ? 0 : 1
         CATransaction.begin()
         CATransaction.setDisableActions(true)
+        // The window server resets the pointer to an arrow while this non-opaque
+        // window's shape animates; restore the hand once the morph settles.
+        CATransaction.setCompletionBlock { [weak self] in
+            guard let self, animated, isHovered, !isDragging else { return }
+            NSCursor.pointingHand.set()
+        }
         if animated {
             animate(surfaceLayer, key: "path", to: path)
-            animate(gripLayer, key: "opacity", to: 1 - arrowAlpha)
-            animate(chevronLayer, key: "opacity", to: arrowAlpha)
+            animate(chevronLayer, key: "opacity", to: 1 - dotAlpha)
+            animate(chevronLayer, key: "position", to: NSValue(point: centre))
+            animate(chevronLayer, key: "transform", to: NSValue(caTransform3D: arrowTransform))
         }
         surfaceLayer.path = path
-        gripLayer.path = grip
-        gripLayer.opacity = 1 - arrowAlpha
-        chevronLayer.opacity = arrowAlpha
+        for (index, dot) in dotLayers.enumerated() {
+            let rest = CGPoint(x: centreX, y: bounds.midY + CGFloat(1 - index) * dotSpacing)
+            let position = isHovered ? centre : rest
+            if animated {
+                animate(dot, key: "position", to: NSValue(point: position))
+                animate(dot, key: "opacity", to: dotAlpha)
+                animate(dot, key: "transform", to: NSValue(caTransform3D: dotTransform))
+            }
+            dot.bounds = CGRect(x: 0, y: 0, width: dotSize, height: dotSize)
+            dot.cornerRadius = dotSize / 2
+            dot.position = position
+            dot.opacity = dotAlpha
+            dot.transform = dotTransform
+            dot.backgroundColor = markColors.indices.contains(index) ? markColors[index].cgColor : nil
+        }
+        chevronLayer.bounds = CGRect(x: 0, y: 0, width: 7, height: 12)
+        chevronLayer.position = centre
+        chevronLayer.opacity = 1 - dotAlpha
+        chevronLayer.transform = arrowTransform
         let scale = window?.backingScaleFactor ?? 2
         surfaceLayer.lineWidth = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast ? 1 : 1 / scale
         effectiveAppearance.performAsCurrentDrawingAppearance {
             let dark = effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-            surfaceLayer.fillColor = NSColor(white: dark ? 0.10 : 0.96, alpha: 1).cgColor
+            surfaceLayer.fillColor = NSColor(white: dark ? 0.12 : 0.97, alpha: 1).cgColor
             surfaceLayer.strokeColor = (NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast ? NSColor.labelColor : NSColor.separatorColor).cgColor
-            gripLayer.fillColor = NSColor.labelColor.withAlphaComponent(0.7).cgColor
             let symbol = edge == .right ? "chevron.left" : "chevron.right"
-            let config = NSImage.SymbolConfiguration(pointSize: 9, weight: .medium)
+            let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
                 .applying(.init(paletteColors: [.labelColor]))
             let image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?.withSymbolConfiguration(config)
             chevronLayer.contents = image?.cgImage(forProposedRect: nil, context: nil, hints: nil)
         }
-        let arrowX = edge == .right ? bounds.maxX - 13 : bounds.minX + 5
-        chevronLayer.frame = CGRect(x: arrowX, y: bounds.midY - 5, width: 6, height: 10)
         chevronLayer.contentsGravity = .resizeAspect
         chevronLayer.contentsScale = scale
         CATransaction.commit()
@@ -173,7 +210,7 @@ final class EdgeTabView: NSView {
         let animation = CABasicAnimation(keyPath: key)
         animation.fromValue = target.presentation()?.value(forKeyPath: key) ?? target.value(forKeyPath: key)
         animation.toValue = value
-        animation.duration = 0.15
+        animation.duration = 0.2
         animation.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 0, 0, 1)
         target.add(animation, forKey: key)
     }

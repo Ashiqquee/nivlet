@@ -14,8 +14,18 @@ struct TextItemEditor: View {
     private enum Field { case title, text }
 
     private var parseError: String? {
-        guard draft.tool == .prompts, draft.usesFields, !draft.text.isEmpty else { return nil }
+        guard draft.usesFields, !draft.text.isEmpty else { return nil }
         do { _ = try PromptTemplate.parse(draft.text); return nil } catch { return String(describing: error) }
+    }
+
+    private var diagnosticRange: NSRange? {
+        guard draft.usesFields else { return nil }
+        do { _ = try PromptTemplate.parse(draft.text); return nil }
+        catch PromptTemplate.ParseError.malformedToken(let position) {
+            let index = draft.text.index(draft.text.startIndex, offsetBy: min(position - 1, draft.text.count))
+            guard index < draft.text.endIndex else { return nil }
+            return NSRange(index..<draft.text.index(after: index), in: draft.text)
+        } catch { return nil }
     }
 
     var body: some View {
@@ -24,70 +34,84 @@ struct TextItemEditor: View {
                 Button { _ = model.closeChild() } label: { Label("Back", systemImage: "chevron.backward") }
                     .buttonStyle(ShelfButtonStyle(compact: true))
                 Spacer()
-                Text(draft.id == nil ? "New \(draft.tool.itemName)" : "Edit \(draft.tool.itemName)")
-                    .font(ShelfStyle.body.weight(.medium)).foregroundStyle(ShelfStyle.secondary)
             }
             .padding(.horizontal, 12).padding(.bottom, 8)
 
             GeometryReader { geometry in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        VStack(alignment: .leading, spacing: 7) {
-                            Text("Title").font(ShelfStyle.body.weight(.medium))
+                        HStack(spacing: 12) {
+                            ItemGlyph(tool: draft.tool, symbol: draft.usesFields ? "curlybraces" : "text.bubble.fill", size: 36)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(draft.id == nil ? "New \(draft.tool.itemName)" : "Edit \(draft.tool.itemName)")
+                                    .font(ShelfStyle.display).accessibilityAddTraits(.isHeader)
+                                Text("A prompt, rule or context you reuse. Copy it any time.")
+                                    .font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary)
+                            }
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            fieldLabel("Title")
                             TextField("Give it a name", text: $draft.title)
-                                .textFieldStyle(.plain).padding(10)
-                                .background(ShelfStyle.card, in: RoundedRectangle(cornerRadius: 10))
+                                .textFieldStyle(.plain).font(.system(size: 13.5, weight: .medium))
+                                .padding(.horizontal, 11).padding(.vertical, 9)
+                                .shelfWell(radius: 10, focused: focusedField == .title)
                                 .focused($focusedField, equals: .title)
-                                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(focusedField == .title ? ShelfStyle.focusRing : ShelfStyle.border.opacity(0.4), lineWidth: focusedField == .title ? 2 : 1))
                                 .accessibilityLabel("Title")
                                 .accessibilityHint(validationTarget == .title ? (validationMessage ?? "") : "")
                         }
-                        VStack(alignment: .leading, spacing: 7) {
-                            Text(draft.tool == .prompts ? "Prompt" : "Instruction").font(ShelfStyle.body.weight(.medium))
-                            PlainTextEditor(text: $draft.text, label: draft.tool == .prompts ? "Prompt text" : "Instruction text", focusRequest: bodyFocusRequest, onFocusChange: { bodyFocused = $0 })
-                                .padding(8)
-                                .frame(height: max(150, geometry.size.height - 200))
-                                .background(ShelfStyle.card, in: RoundedRectangle(cornerRadius: 10))
-                                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(bodyFocused ? ShelfStyle.focusRing : ShelfStyle.border.opacity(0.4), lineWidth: bodyFocused ? 2 : 1))
+                        VStack(alignment: .leading, spacing: 6) {
+                            fieldLabel("Prompt")
+                            PlainTextEditor(text: $draft.text, label: "Prompt text", focusRequest: bodyFocusRequest, onFocusChange: { bodyFocused = $0 }, diagnosticRange: diagnosticRange)
+                                .padding(7)
+                                .frame(height: max(150, geometry.size.height - 280))
+                                .shelfWell(radius: 10, focused: bodyFocused)
                                 .overlay(alignment: .topLeading) {
                                     if draft.text.isEmpty {
                                         Text("Write or paste your \(draft.tool.itemName)…")
-                                            .foregroundStyle(ShelfStyle.secondary).padding(13).allowsHitTesting(false)
+                                            .foregroundStyle(ShelfStyle.tertiary).padding(.horizontal, 13).padding(.vertical, 13).allowsHitTesting(false)
                                     }
                                 }
-                                .accessibilityLabel(draft.tool == .prompts ? "Prompt text" : "Instruction text")
+                                .accessibilityLabel("Prompt text")
                                 .accessibilityHint(validationTarget == .text ? (validationMessage ?? "") : "")
                         }
-                        Toggle("Favourite", isOn: $draft.isFavorite).toggleStyle(.checkbox)
-                        if draft.tool == .prompts {
-                            Toggle("Use named blanks", isOn: $draft.usesFields).toggleStyle(.checkbox)
-                            if draft.usesFields {
-                                Text("Optional: write {{topic}} where a value should go. Repeated names share one input. Escape literal braces with a backslash.")
-                                    .font(ShelfStyle.body).foregroundStyle(ShelfStyle.secondary).padding(.top, 5)
-                            }
+                        VStack(alignment: .leading, spacing: 0) {
+                            optionRow("Favourite", detail: "Pin it to the top of the shelf.", symbol: "star.fill", tint: ShelfStyle.favourite, isOn: $draft.isFavorite)
+                            Rectangle().fill(ShelfStyle.hairline).frame(height: 1).padding(.leading, 38)
+                            optionRow("Use named blanks", detail: draft.usesFields
+                                      ? "Write {{topic}} where a value should go. Repeated names share one input. Escape literal braces with a backslash."
+                                      : "Turn on to fill in {{blanks}} before copying.",
+                                      symbol: "curlybraces", tint: PanelTool.prompts.tint, isOn: $draft.usesFields)
                         }
+                        .shelfWell(radius: 12)
                         if validationMessage == nil, let message = parseError {
                             validationLabel(message)
                         }
                     }
-                    .padding(.horizontal, 14).padding(.bottom, 14)
+                    .padding(.horizontal, 18).padding(.top, 2).padding(.bottom, 18)
                 }
             }
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 if let message = validationMessage {
                     validationLabel(message)
                 }
-            HStack {
-                Button("Cancel") { _ = model.closeChild() }.buttonStyle(ShelfButtonStyle())
-                Spacer(minLength: 8)
-                Button(saving ? "Saving…" : "Save \(draft.tool.itemName)") { saveRequested() }
-                    .buttonStyle(.borderedProminent).controlSize(.regular).disabled(saving)
+                HStack(spacing: 8) {
+                    Button { _ = model.closeChild() } label: { HStack(spacing: 7) { Text("Cancel").fixedSize(); Keycap("esc") } }
+                        .buttonStyle(ShelfButtonStyle())
+                    Spacer(minLength: 8)
+                    Button { saveRequested() } label: {
+                        HStack(spacing: 8) {
+                            Text(saving ? "Saving…" : "Save").lineLimit(1).fixedSize()
+                            Keycap("⌘", "S", inverted: true)
+                        }
+                    }
+                    .buttonStyle(PrimaryButtonStyle()).disabled(saving)
                     .keyboardShortcut("s", modifiers: .command)
+                }
             }
-
-            }
-            .padding(12)
+            .padding(.horizontal, 16).padding(.vertical, 14)
+            .overlay(alignment: .top) { Rectangle().fill(ShelfStyle.hairline).frame(height: 1) }
         }
+        .disabled(saving)
         .defaultFocus($focusedField, .title)
         .onChange(of: draft.title) { draft.hasChanges = true; validationMessage = nil }
         .onChange(of: draft.text) { draft.hasChanges = true; validationMessage = nil }
@@ -97,6 +121,28 @@ struct TextItemEditor: View {
             Button("Save and reset fields") { save() }
             Button("Keep editing", role: .cancel) {}
         } message: { Text("Saving changes to this template clears its filled values. The saved prompt will use the new text.") }
+    }
+
+    private func fieldLabel(_ text: String) -> some View {
+        Text(text).font(ShelfStyle.caption.weight(.semibold)).foregroundStyle(ShelfStyle.secondary)
+    }
+
+    private func optionRow(_ title: String, detail: String, symbol: String, tint: Color, isOn: Binding<Bool>) -> some View {
+        Toggle(isOn: isOn) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(tint)
+                    .frame(width: 18, height: 18).accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(ShelfStyle.body.weight(.medium))
+                    Text(detail).font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary).fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .accessibilityLabel(title)
+        .accessibilityHint(detail)
+        .toggleStyle(.switch).controlSize(.small)
+        .padding(.horizontal, 10).padding(.vertical, 10)
     }
 
     private func validationLabel(_ message: String) -> some View {
@@ -131,7 +177,7 @@ struct TextItemEditor: View {
             return
         }
         validationMessage = nil
-        if let id = draft.id, draft.tool == .prompts,
+        if let id = draft.id,
            (kit.prompts.first(where: { $0.id == id })?.source != draft.text || kit.prompts.first(where: { $0.id == id })?.usesFields != draft.usesFields),
            model.fieldValues[id]?.values.contains(where: PromptTemplate.isFilled) == true {
             confirmReset = true
@@ -141,17 +187,18 @@ struct TextItemEditor: View {
     private func save() {
         saving = true
         Task {
-            let saved: Bool
-            if draft.tool == .prompts {
-                let original = draft.id.flatMap { id in kit.prompts.first(where: { $0.id == id }) }
-                let changedSource = original?.source != draft.text || original?.usesFields != draft.usesFields
-                saved = await kit.savePrompt(id: draft.saveID, label: draft.title, source: draft.text, favorite: draft.isFavorite, usesFields: draft.usesFields)
-                if saved, changedSource, let id = draft.id { model.fieldValues[id] = nil }
-            } else {
-                saved = await kit.saveInstruction(id: draft.saveID, label: draft.title, body: draft.text, favorite: draft.isFavorite)
-            }
+            let original = draft.id.flatMap { id in kit.prompts.first(where: { $0.id == id }) }
+            let changedSource = original?.source != draft.text || original?.usesFields != draft.usesFields
+            let saved = await kit.savePrompt(id: draft.saveID, label: draft.title, source: draft.text, favorite: draft.isFavorite, usesFields: draft.usesFields)
+            if changedSource, let id = draft.id { model.fieldValues[id] = nil }
             saving = false
-            if saved { model.discardDraft() }
+            if model.draft === draft {
+                // Save has submitted these values to the library. On failure they
+                // remain pending there with Retry; closing this editor must not
+                // offer a misleading "Discard" for that submitted save attempt.
+                draft.hasChanges = false
+                if saved { model.discardDraft() }
+            }
         }
     }
 }

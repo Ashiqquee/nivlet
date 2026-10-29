@@ -4,7 +4,9 @@
 
 ## Design direction
 
-A quiet native utility stays beside the user's real work. Borrow the Refbox demo's small desktop footprint, strong content/preview relationship, consistent spacing and restrained controls. Translate those ideas into readable instruction rows and forms; a column of large image thumbnails is not suitable for every tool.
+A quiet native utility stays beside the user's real work. Borrow the Refbox demo's small desktop footprint, strong content/preview relationship, consistent spacing and restrained controls. Translate those ideas into readable prompt rows and forms; a column of large image thumbnails is not suitable for every tool.
+
+**Owner-directed visual system (27 October 2026):** a launcher-style surface modelled on the best-designed apps of the past year — see the [research](../references/ui-ux/2026-best-apps/README.md) and [redesign record](implementation/ui-redesign.md). Keep: translucent dark-first material with opaque fallbacks, one accent hue per tool (tiles, glow, progress — never body text), one highlighted row with inline actions, the footer action bar (status · primary `↵` · `Actions ⌘K`), the ⌘K action panel driven by `ShelfCommands`, HUD copy toast, and inverted-ink primary buttons. Shared tokens and components live in `Nivlet/Features/Panel/ShelfStyle.swift`. Don't revert to stock grey cards without an owner decision.
 
 The captured page is a promotional website. Its headline, pricing sections, large typography, purple wallpaper and embedded artwork are not the application's design system.
 
@@ -20,8 +22,7 @@ Use the existing `better-*` owner for focused improvements. Read only needed sup
 |---|---|
 | Edge tab | Inward chevron, deliberate click, generous invisible hit target, adjustable position; never hover-open |
 | Panel header | Pocket switcher, clear search scope, Pin and collapse; avoid an unexplained wall of icons |
-| Instructions | Compact label/body preview with explicit Copy; title opens preview/edit |
-| Prompts | Named inputs and complete rendered text; missing inputs prevent copying |
+| Prompts | One list for prompts, rules and context (instructions merged 27 Oct 2026). Plain prompts copy directly; prompts with named blanks show inputs and complete rendered text, and missing inputs prevent copying |
 | References | Content thumbnails or file-type fallbacks, note, preview and separate Drag file/Copy note actions |
 | Notes | Immediate plain-text/checklist editing with honest save status |
 | Inspector | Preview/edit inside the existing panel; Escape backs out before tucking |

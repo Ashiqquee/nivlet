@@ -1,14 +1,7 @@
 import Foundation
 import Observation
 
-nonisolated struct Instruction: Identifiable, Equatable, Sendable {
-    let id: UUID
-    var label: String
-    var body: String
-    var isFavorite: Bool
-}
-
-nonisolated struct ReferenceItem: Identifiable, Equatable, Sendable {
+nonisolated struct ReferenceItem: Identifiable, Equatable, Sendable, Codable {
     let id: UUID
     var label: String
     var note: String
@@ -17,6 +10,7 @@ nonisolated struct ReferenceItem: Identifiable, Equatable, Sendable {
     /// Original bytes owned by the app. Phase 1 uses bundled samples.
     var originalURL: URL
     var isImage: Bool
+    var byteCount: Int64? = nil
 }
 
 /// In-memory sample pocket for the Phase 1 shell. Edits survive tucking and
@@ -24,7 +18,8 @@ nonisolated struct ReferenceItem: Identifiable, Equatable, Sendable {
 @Observable
 final class SampleKit {
     var pocketName = "Website"
-    var instructions: [Instruction]
+    /// Standing rules and context, saved as plain prompts.
+    var rules: [SavedPrompt]
     var prompt: PromptTemplate
     /// Draft values for the prompt, kept separate from the template.
     var promptValues: [String: String] = [:]
@@ -32,30 +27,27 @@ final class SampleKit {
     var note: String
 
     init(bundle: Bundle = .main) {
-        instructions = [
-            Instruction(
-                id: UUID(),
+        rules = [
+            SavedPrompt(
                 label: "Writing style",
-                body: """
+                source: """
                 Write in plain, specific language. Short sentences. No hype words like \
                 "revolutionary" or "seamless". Prefer concrete examples over adjectives.
                 """,
                 isFavorite: true
             ),
-            Instruction(
-                id: UUID(),
+            SavedPrompt(
                 label: "Project constraints",
-                body: """
+                source: """
                 Static site, no JavaScript framework.
                 Must load fast on mobile.
                 Keep the existing colour palette and the pricing link in the header.
                 """,
                 isFavorite: false
             ),
-            Instruction(
-                id: UUID(),
+            SavedPrompt(
                 label: "Review checklist",
-                body: """
+                source: """
                 Before you answer:
                 • Check the headline is under 10 words.
                 • Point out anything that hurts accessibility.

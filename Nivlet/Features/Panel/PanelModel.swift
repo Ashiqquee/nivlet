@@ -2,27 +2,26 @@ import AppKit
 import Observation
 
 nonisolated enum PanelTool: String, CaseIterable, Identifiable, Sendable {
-    case instructions, prompts, references, notes
+    case prompts, references, notes
     var id: String { rawValue }
     var symbol: String {
         switch self {
-        case .instructions: "text.quote"
-        case .prompts: "curlybraces"
-        case .references: "photo.on.rectangle.angled"
-        case .notes: "note.text"
+        case .prompts: "text.bubble.fill"
+        case .references: "photo.fill.on.rectangle.fill"
+        case .notes: "checklist"
         }
     }
     var shortcut: Character {
-        switch self { case .instructions: "1"; case .prompts: "2"; case .references: "3"; case .notes: "4" }
+        switch self { case .prompts: "1"; case .references: "2"; case .notes: "3" }
     }
     var title: String {
-        switch self { case .instructions: "Instructions"; case .prompts: "Prompts"; case .references: "References"; case .notes: "Scratchpad" }
+        switch self { case .prompts: "Prompts"; case .references: "References"; case .notes: "Scratchpad" }
     }
-    var itemName: String { self == .instructions ? "instruction" : "prompt" }
+    var itemName: String { "prompt" }
 }
 
 nonisolated enum PanelInspector: Equatable {
-    case instruction(UUID), prompt(UUID), reference(UUID), editor
+    case prompt(UUID), reference(UUID), editor
 }
 
 @Observable
@@ -43,13 +42,25 @@ final class TextDraft {
 
 @Observable
 final class PanelModel {
+    @ObservationIgnored let transferPasteboard: NSPasteboard
+
+    init(pasteboard: NSPasteboard = .general) { transferPasteboard = pasteboard }
     var tool: PanelTool = .prompts
     var inspector: PanelInspector?
     var draft: TextDraft?
-    var query = ""
+    var query = "" { didSet { if query != oldValue { selection = nil; actionsOpen = false } } }
+    /// Highlighted list item; `nil` falls back to the first visible row.
+    var selection: UUID?
+    var actionsOpen = false
+    var actionIndex = 0
+    /// Set by keyboard navigation so the list scrolls the selection into view (hover does not).
+    var revealRequest: UUID?
+    /// The row that was just copied, for its inline confirmation.
+    private(set) var lastCopiedID: UUID?
     var searchFocusRequest = 0
     var showDiscardConfirmation = false
     var fieldValues: [UUID: [String: String]] = [:]
+    var preparedReferenceURLs: [UUID: URL] = [:]
     var isFeedbackError = false
     private(set) var feedback: String?
     @ObservationIgnored var focusForEditing: () -> Void = {}
@@ -59,11 +70,11 @@ final class PanelModel {
 
     func select(_ tool: PanelTool) {
         guard !(draft?.hasChanges ?? false) else { pendingTool = tool; showDiscardConfirmation = true; return }
-        self.tool = tool; inspector = nil; draft = nil; query = ""
+        self.tool = tool; inspector = nil; draft = nil; query = ""; selection = nil; actionsOpen = false
     }
 
     func beginNew() {
-        guard tool == .prompts || tool == .instructions else { return }
+        guard tool == .prompts else { return }
         guard !(draft?.hasChanges ?? false) else { showDiscardConfirmation = true; return }
         draft = TextDraft(tool: tool)
         inspector = .editor
@@ -75,12 +86,6 @@ final class PanelModel {
         newScratchpadTaskRequest += 1
     }
 
-    func edit(_ instruction: Instruction) {
-        draft = TextDraft(id: instruction.id, tool: .instructions, title: instruction.label,
-                          text: instruction.body, isFavorite: instruction.isFavorite)
-        inspector = .editor; focusForEditing()
-    }
-
     func edit(_ prompt: SavedPrompt) {
         draft = TextDraft(id: prompt.id, tool: .prompts, title: prompt.label,
                           text: prompt.source, isFavorite: prompt.isFavorite, usesFields: prompt.usesFields)
@@ -88,6 +93,7 @@ final class PanelModel {
     }
 
     func closeChild() -> Bool {
+        if actionsOpen { actionsOpen = false; return true }
         guard inspector != nil else { return false }
         if draft?.hasChanges == true { pendingTool = nil; showDiscardConfirmation = true; return true }
         inspector = nil; draft = nil
@@ -102,27 +108,38 @@ final class PanelModel {
 
     func cancelPendingNavigation() { pendingTool = nil }
 
-    func copy(_ text: String) {
-        if TextCopier.copy(text) { showFeedback("Text copied") }
-        else { showFeedback("Couldn't copy. Try again.", isError: true) }
+    func copy(_ text: String, from id: UUID? = nil) {
+        if TextCopier.copy(text, to: transferPasteboard) {
+            lastCopiedID = id
+            showFeedback("Copied to clipboard")
+        } else { showFeedback("Couldn't copy. Try again.", isError: true) }
     }
+
+    #if DEBUG
+    /// Capture hook: the copy-success state without touching the clipboard.
+    func simulateCopiedForCapture(_ id: UUID) {
+        lastCopiedID = id
+        showFeedback("Copied to clipboard")
+    }
+    #endif
 
     func announceValidation(_ message: String) {
         NSAccessibility.post(element: NSApp as Any, notification: .announcementRequested,
             userInfo: [.announcement: message, .priority: NSAccessibilityPriorityLevel.high.rawValue])
     }
 
-    func dismissFeedback() { feedbackTask?.cancel(); feedback = nil; isFeedbackError = false }
+    func dismissFeedback() { feedbackTask?.cancel(); feedback = nil; isFeedbackError = false; lastCopiedID = nil }
 
-    func showFeedback(_ message: String, isError: Bool = false) {
+    func showFeedback(_ message: String, isError: Bool = false, persists: Bool = false) {
         feedbackTask?.cancel()
         feedback = message; isFeedbackError = isError
         NSAccessibility.post(element: NSApp as Any, notification: .announcementRequested,
             userInfo: [.announcement: message, .priority: NSAccessibilityPriorityLevel.medium.rawValue])
-        guard !isError else { return }
+        guard !isError, !persists else { return }
         feedbackTask = Task { [weak self] in
             do { try await Task.sleep(for: .seconds(1.8)) } catch { return }
             self?.feedback = nil
+            self?.lastCopiedID = nil
         }
     }
 }

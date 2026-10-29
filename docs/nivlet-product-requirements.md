@@ -10,7 +10,7 @@ Status: proposed first release; no app implementation or launch. The owner selec
 
 ## 01 · Product contract
 
-A discreet tab at the edge of the Mac screen opens a compact toolkit beside the user's existing AI application. The kit contains instructions, fill-in prompts, references and a scratchpad, organised by project pocket.
+A discreet tab at the edge of the Mac screen opens a compact toolkit beside the user's existing AI application. The kit contains prompts (plain or with fill-in blanks), references and a scratchpad, organised by project pocket. *Owner decision, 27 October 2026: instructions and prompts merged into one Prompts list; standing rules and context are saved as plain prompts.*
 
 - Website download; no App Store for v1.
 - No in-app model, provider API, API key, generated prompts or AI subscription. Local tools function offline.
@@ -22,7 +22,7 @@ A discreet tab at the edge of the Mac screen opens a compact toolkit beside the 
 
 ## 02 · Audience, job and proof
 
-Audience hypothesis: independent designers, builders and writers moving between an AI chat and actual work. They retrieve instructions, adapt familiar templates, attach references and track the next question.
+Audience hypothesis: independent designers, builders and writers moving between an AI chat and actual work. They retrieve standing rules and prompts, adapt familiar templates, attach references and track the next question.
 
 Job: keep a small reusable working kit within reach without switching to a full notes app or another AI service. Validate less searching and window switching, not promised improvements in AI output.
 
@@ -38,20 +38,22 @@ These are proposed thresholds, not observed results. Measure manually with conse
 
 ## 03 · First-release features
 
-### Instructions on tap
+### Prompts
 
-Save labelled text cards, pin favourites, search and copy exact reviewed text with one deliberate click. Examples: writing style, project constraints and review checklist.
+*Owner decision, 27 October 2026: “Instructions on tap” and “Fill-in prompts” became one Prompts tool. Standing rules and context are plain prompts; named blanks are optional per prompt. Existing instructions migrate to plain prompts.*
 
-- Fields: label, body, favourite flag and order.
+Save labelled text cards, pin favourites, search and copy exact reviewed text with one deliberate click. Examples: writing style, project constraints, review checklist and reusable task prompts.
+
+- Fields: label, body, favourite flag, order and an optional “Use named blanks” flag.
 - Named Copy button copies; selecting the title opens preview/edit.
 - Preserve Unicode, emoji and line breaks, with documented line-ending normalisation only.
-- Feedback says “Text copied,” never implying the text was pasted or sent.
+- Feedback says “Copied to clipboard,” never implying the text was pasted or sent.
 - Empty cards cannot be saved.
 - Rename, duplicate, reorder and move between pockets through accessible menus as well as drag.
 
-### Fill-in prompts
+#### Optional named blanks
 
-Save a reusable template with explicit named blanks, fill them, inspect complete text, then copy. No model rewriting or optimisation.
+A prompt may opt in to explicit named blanks: fill them, inspect complete text, then copy. Without the option, braces are literal text and the prompt copies exactly as saved. No model rewriting or optimisation.
 
 - Grammar: `{{field_name}}`; names begin with a letter and otherwise allow letters, digits and underscore.
 - Repeated names share one value and produce one field.
@@ -77,9 +79,9 @@ Save screenshots/images and other files with a label and note. Preview beside th
 
 ### Project pockets
 
-Each pocket owns instructions, templates, references and notes. Switching changes the local kit, not the active AI conversation or provider memory.
+Each pocket owns prompts, references and notes. Switching changes the local kit, not the active AI conversation or provider memory.
 
-- Search active-pocket labels, instruction/template text and reference notes; not hidden file contents.
+- Search active-pocket labels, prompt text and reference notes; not hidden file contents.
 - Provide explicit All pockets scope.
 - Flush saves on switching; restore the last view and position where possible.
 - One pocket owns each item; no live cross-pocket links in v1.
@@ -90,7 +92,7 @@ Each pocket owns instructions, templates, references and notes. Switching change
 One autosaved plain-text note/checklist per pocket for next questions and small tasks. Explicit paste only; no clipboard or chat-history recording.
 
 - Plain text plus simple checklist rows; no rich-text renderer required.
-- Keep temporary thoughts distinct from reusable instructions.
+- Keep temporary thoughts distinct from reusable prompts.
 - Visible autosave status and persistent failures; never show Saved after a failed write.
 
 ## 04 · Positioning and scope limits
@@ -163,8 +165,7 @@ Proposed: SwiftUI with AppKit bridges for NSPanel, screen geometry, menu bar, fi
 | Entity | Intended data |
 |---|---|
 | Pocket | UUID, name, order, active view, timestamps, schema version |
-| Instruction | UUID, pocket ID, label, body, favourite, order |
-| Template | UUID, pocket ID, label, source, ordered unique fields; filled draft separate |
+| Prompt | UUID, pocket ID, label, source, favourite, order, uses-blanks flag; ordered unique fields when blanks are on; filled draft separate (instructions merged here 27 Oct 2026) |
 | Reference | UUID, pocket ID, label, note, asset ID, order |
 | Asset | Original name, detected type, size, digest, internal relative path, thumbnail |
 | Scratchpad | Pocket ID, plain text, ordered checklist items, revision |
@@ -182,11 +183,11 @@ Import/save requirements:
 - Per-file import results; retry failed files only.
 - Reject folders. Do not recursively import, execute scripts, expand arbitrary archives, fetch URL previews or monitor clipboard contents.
 - Bound thumbnail/preview decoding and keep heavy work off the main thread.
-- Proposed file limits: warn above 100 MB, confirm above 500 MB, refuse above 2 GB; final values depend on testing.
+- Provisional file limits implemented in Phase 3: warn above 100 MB, confirm above 500 MB, refuse above 2 GB (decimal bytes). Numeric/scaled-fixture boundaries pass; maximum-size throughput and final values still depend on testing.
 
 ## 09 · Copy, file integrity, ownership and privacy
 
-Copy exact reviewed instruction/template text, with documented line-ending normalisation only. No appended marketing, invisible instructions or file paths.
+Copy exact reviewed prompt text, with documented line-ending normalisation only. No appended marketing, invisible instructions or file paths.
 
 File drag exposes app-owned original bytes with the original display name. Multi-select shows count/names first. If drag fails, Reveal in Finder exposes an export directory for manual attachment. Never claim an AI received or understood a file. Notes are not silently embedded in images.
 
@@ -217,7 +218,7 @@ These are implementation checks to perform, not completed tests.
 | ID | Required evidence |
 |---|---|
 | AC-01 Shell | Mouse/keyboard open/tuck/pin, edit then click-away, Spaces, sleep/wake, display detach. No lost text, swallowed click, stuck invisible window or duplicate tab. Record full-screen limits. |
-| AC-02 Instructions | Unicode, emoji, long text and line breaks copy correctly; only documented line-ending normalisation. No auto-paste/send. |
+| AC-02 Plain prompts | Unicode, emoji, long text, braces and line breaks copy correctly; only documented line-ending normalisation. No auto-paste/send. Instructions from older libraries migrate without loss. |
 | AC-03 Templates | Repeated fields/escaping correct; incomplete fills/malformed sources blocked; token-like values literal; preview equals copied text; edit/reset warnings preserve saved source. |
 | AC-04 Files | Import 20 mixed files, remove sources, restart offline and export. Successful originals match digests. Test current Claude/ChatGPT browser uploads in Safari/Chrome and Mac clients where available; record exact versions/results and Finder fallback. |
 | AC-05 Pockets | Two pockets with similar labels: switch/search/duplicate/move/delete/Undo without unexpected crossover. Notes/view state survive immediate quit/restart. |
@@ -235,7 +236,7 @@ US$2 is proposed within US$1–3. Verify Indian seller onboarding/payouts, buyer
 
 Proposed entitlement: one person, two personal Macs; signed licence verified locally with no periodic server checks. Base features continue without subscription. Future upgrades, eternal OS support and indefinite support are separate promises. Decide abuse, refund revocation and recovery tradeoffs before sale. Test receipt-based recovery with minimal data.
 
-Proposed non-expiring trial: one pocket, 10 instructions/templates combined, 10 references and full scratchpad/copy/drag. Paid unlock removes limits. Never destroy or lock away existing content if limits change. Trial and seat policy remain open.
+Proposed non-expiring trial: one pocket, 10 prompts, 10 references and full scratchpad/copy/drag. Paid unlock removes limits. Never destroy or lock away existing content if limits change. Trial and seat policy remain open.
 
 ## 12 · Distribution and build gates
 
@@ -262,7 +263,7 @@ Open decisions:
 - macOS floor, Intel support, full-screen/Spaces guarantees after testing.
 - Tab dimensions/defaults, shortcut default (Option-Space conflicts; see §07) and conflict handling, and file-size limits.
 - Template grammar edge cases: lone `{`/`}`, whitespace inside `{{ name }}`, a backslash before a non-brace character, and a literal backslash immediately before an escaped brace. Settle these in Phase 3 before parser tests are written.
-- The exact "documented line-ending normalisation" (for example, keep as reviewed or convert CRLF/CR to LF). Define it in Phase 2; every copy rule depends on it.
+- **Resolved in Phase 2:** preserve reviewed text unchanged, including CRLF, CR and LF; no trimming or Unicode normalisation. See [copy decision and evidence](implementation/phase2-persistence.md#exact-copy-decision).
 - Signing membership, support contact, legal/privacy text and tested recovery.
 
 Optional follow-ons, not committed scope:

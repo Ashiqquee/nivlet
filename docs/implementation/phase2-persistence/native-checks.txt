@@ -1,0 +1,69 @@
+PASS Press New prompt
+PASS Focus Title
+PASS Native typing updates Title exactly
+PASS Focus Prompt text
+PASS Native typing updates Prompt text exactly
+PASS Press Save
+PASS Saved prompt appears on the shelf
+PASS Press Scratchpad
+PASS Press Edit text
+PASS Focus Scratchpad text
+PASS Native typing updates Scratchpad text exactly
+PASS Request immediate ordinary quit after native editing
+PASS Quit finishes after saving
+PASS Press Open Nivlet
+PASS Prompt survived quit/relaunch
+PASS Press Scratchpad
+PASS Press Edit text
+PASS Latest scratchpad survived immediate quit
+PASS Focus Scratchpad text
+PASS Native typing updates Scratchpad text exactly
+PASS Switch focus to Finder
+PASS Press Open Nivlet
+PASS Click-away/reopen retains current native text
+PASS Quit review app
+PASS Writer process exited mid-transaction without cleanup (exit 23)
+PASS SQLite rolled back uncommitted text changes on reopen
+PASS Last committed prompt and scratchpad survived unchanged
+PASS Pending-save intent survived for native recovery review
+PASS SQLite integrity_check: ok
+PASS Recovery reports unsaved changes visibly
+PASS Recovery offers persistent Retry
+PASS Recovered prompt is available to review
+PASS Writer process exited mid-transaction without cleanup (exit 23)
+PASS SQLite rolled back uncommitted text changes on reopen
+PASS Last committed prompt and scratchpad survived unchanged
+PASS Pending-save intent survived for native recovery review
+PASS SQLite integrity_check: ok
+PASS Press Open Nivlet
+PASS Recovery reports unsaved changes visibly
+PASS Recovery offers persistent Retry
+PASS Recovered prompt is available to review
+PASS Press Open Nivlet
+PASS Recovery reports unsaved changes visibly
+PASS Recovery offers persistent Retry
+PASS Recovered prompt is available to review
+PASS Press Open Nivlet
+PASS Press Retry
+PASS Successful retry clears the failure
+PASS Recovered prompt remains after commit
+PASS Quit after recovery
+PASS Press Open Nivlet
+PASS Press New prompt
+PASS Focus Title
+PASS Native typing updates Title exactly
+PASS Focus Prompt text
+PASS Native typing updates Prompt text exactly
+PASS Press Save
+PASS Press Actions for selected item
+PASS Move down is available in native actions
+PASS Press Move down
+PASS Press Actions for selected item
+PASS Press Duplicate
+PASS Press Actions for selected item
+PASS Press Delete
+PASS Press Undo delete
+PASS Press Actions for selected item
+PASS Reorder actions remain reachable after duplicate and Undo
+PASS Final native action menu fits a 320 × 360 panel; screenshot inspected
+PASS Final suite: 56 tests / 91 cases, zero failures, zero skipped, no runtime warnings

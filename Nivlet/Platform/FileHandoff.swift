@@ -15,9 +15,16 @@ nonisolated struct FileHandoff: Sendable {
     func exportCopy(of source: URL, displayName: String) throws -> URL {
         let folder = exportRoot.appending(path: UUID().uuidString, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        var finished = false
+        defer { if !finished { try? FileManager.default.removeItem(at: folder) } }
         let destination = folder.appending(path: Self.safeFileName(displayName), directoryHint: .notDirectory)
         try FileManager.default.copyItem(at: source, to: destination)
+        let digest = source.deletingLastPathComponent().lastPathComponent
+        if digest.count == 64, digest.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }) {
+            guard try Self.sha256(of: destination) == digest else { throw LibraryStoreError.invalidFile }
+        }
         try FileManager.default.setAttributes([.posixPermissions: 0o444], ofItemAtPath: destination.path(percentEncoded: false))
+        finished = true
         return destination
     }
 
@@ -44,6 +51,7 @@ nonisolated struct FileHandoff: Sendable {
         defer { try? handle.close() }
         var hasher = SHA256()
         while let chunk = try handle.read(upToCount: 1 << 20), !chunk.isEmpty {
+            try Task.checkCancellation()
             hasher.update(data: chunk)
         }
         return hasher.finalize().map { String(format: "%02x", $0) }.joined()
@@ -52,6 +60,7 @@ nonisolated struct FileHandoff: Sendable {
     /// Keeps a display name to a single path component.
     static func safeFileName(_ name: String) -> String {
         let cleaned = name
+            .replacingOccurrences(of: "\0", with: "-")
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
             .trimmingCharacters(in: .whitespacesAndNewlines)

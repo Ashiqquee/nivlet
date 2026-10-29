@@ -1,20 +1,21 @@
 # Nivlet
 
-A native Mac edge panel that keeps reusable instructions, fill-in prompts, reference files and notes beside the AI app you already use.
+A native Mac edge panel that keeps reusable prompts (with optional fill-in blanks), reference files and notes beside the AI app you already use.
 
 Click a small screen-edge tab, open your local pocket, then explicitly copy text or drag a reference file into your working application.
 
-**Status:** Native development build with a full-height edge shelf and one persistent local pocket. Users can save their own instructions/plain prompts, optionally fill named blanks, import reference files and keep notes with clickable to-dos. Build and tests pass (40 tests, 71 cases). Multiple pockets and remaining release/acceptance checks are incomplete; see the [UI audit](docs/implementation/ui-audit.md) and [checklist/edge refinement](docs/implementation/checklist-refinement.md). The owner selected Nivlet on 27 October 2026.
+**Status:** Native development build with a full-height edge shelf and one persistent local pocket. Phases 2–3 pass their local gates: saved plain/fill-in prompts, ordering/deletion Undo, scratchpad autosave, failed-save recovery and original-file references with paste, per-file retry, bounded previews and a tested Finder fallback. Build and tests pass (78 tests, 135 cases). See the [Phase 3 evidence](docs/implementation/phase3-vertical-slice.md), [Phase 2 evidence](docs/implementation/phase2-persistence.md) and [launcher-style redesign](docs/implementation/ui-redesign.md). Multiple pockets and remaining release/acceptance checks are incomplete. The owner selected Nivlet on 27 October 2026.
 
 ## First-release scope
 
 | Tool | Intended behavior |
 |---|---|
-| Instructions on tap | Save labelled text cards, pin favourites, search and copy reviewed text. |
-| Fill-in prompts | Fill explicit named fields, inspect the complete request and copy it without AI rewriting. |
+| Prompts | One list for prompts, rules and context: save labelled text, pin favourites, search and copy reviewed text. Optional named blanks let you fill fields, inspect the complete request and copy it without AI rewriting. |
 | Reference shelf | Store original file copies with labels/notes, preview supported files and drag them out manually. |
 | Project pockets | Switch between separate working kits without changing the active AI conversation. |
 | Scratchpad | Keep one autosaved plain-text note/checklist per pocket. |
+
+Instructions and prompts were merged into one Prompts list on 27 October 2026 (owner decision). Existing libraries upgrade automatically, with a backup of the database taken first.
 
 Working features are designed to run locally and offline. No model/provider API, API key or AI subscription is required. Users control every text/file transfer; automatic chat reading, clipboard monitoring and auto-paste/send are outside v1.
 
@@ -36,16 +37,58 @@ Distribution is planned through the owner's website with a one-time purchase. Pr
 
 The proposed stack is SwiftUI with focused AppKit bridges, SQLite metadata and app-owned original assets. macOS 14 is a provisional deployment floor; Intel and full-screen support require actual testing.
 
-Phase 1 needs Xcode 27.1 or later. From the repository root:
+[Implementation decisions](docs/implementation/decisions.md) and [Phase 1 evidence](docs/implementation/phase1-feasibility.md) record what was chosen and actually tested.
+
+## Running Nivlet
+
+Requires macOS 14+ and Xcode 27.1 or later. Run every command from the repository root.
+
+### Xcode
+
+Open `Nivlet.xcodeproj`, select the **Nivlet** scheme and press ⌘R. Press ⌘U to run the tests.
+
+### Command line
 
 ```sh
+# Use full Xcode rather than the Command Line Tools
 export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+
+# Build
 xcodebuild -project Nivlet.xcodeproj -scheme Nivlet -destination 'platform=macOS' -derivedDataPath build/DerivedData build
+
+# Test
 xcodebuild -project Nivlet.xcodeproj -scheme Nivlet -destination 'platform=macOS' -derivedDataPath build/DerivedData test
+
+# Launch
 open build/DerivedData/Build/Products/Debug/Nivlet.app
+
+# Quit a running copy before relaunching it
+osascript -e 'quit app "Nivlet"'
 ```
 
-Or open `Nivlet.xcodeproj` and press ⌘R. Nivlet runs as a menu-bar accessory with no Dock icon: click the tab at the right screen edge, or open Nivlet again from Spotlight. [Implementation decisions](docs/implementation/decisions.md) and [Phase 1 evidence](docs/implementation/phase1-feasibility.md) record what was chosen and actually tested.
+### Using the app
+
+Nivlet runs as a menu-bar accessory with no Dock icon. To open the panel, click the tab on the screen edge, press ⇧⌘Space (unless macOS already uses that shortcut), use the menu-bar item or open Nivlet again from Spotlight.
+
+### Debug launch options
+
+These options only work in Debug builds:
+
+```sh
+# Sample content in a preview pocket that is not saved
+open build/DerivedData/Build/Products/Debug/Nivlet.app --args -NivletPreview YES
+
+# Open the panel on launch, optionally on a specific tool: prompts, references or notes
+open build/DerivedData/Build/Products/Debug/Nivlet.app --args -NivletOpenOnLaunch YES -NivletTool prompts
+
+# Use a separate local development library (letters, numbers and hyphens only)
+open build/DerivedData/Build/Products/Debug/Nivlet.app --args -NivletDevelopmentLibrary scratch
+
+# Force light or dark appearance for screenshots
+open build/DerivedData/Build/Products/Debug/Nivlet.app --args -NivletAppearance light
+```
+
+`-NivletDevelopmentLibrary` is remembered between launches. To go back to your normal library, run `defaults delete ashique.nivlet.Nivlet NivletDevelopmentLibrary`.
 
 ## UI/UX references
 

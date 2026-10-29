@@ -9,6 +9,7 @@ struct PlainTextEditor: NSViewRepresentable {
     var lineSpacing: CGFloat = 4
     var focusRequest = 0
     var onFocusChange: (Bool) -> Void = { _ in }
+    var diagnosticRange: NSRange? = nil
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -70,6 +71,15 @@ struct PlainTextEditor: NSViewRepresentable {
             view.string = text
             let count = (text as NSString).length
             view.setSelectedRange(NSRange(location: min(selection.location, count), length: 0))
+        }
+        if let layout = view.layoutManager {
+            let whole = NSRange(location: 0, length: (view.string as NSString).length)
+            layout.removeTemporaryAttribute(.underlineStyle, forCharacterRange: whole)
+            layout.removeTemporaryAttribute(.underlineColor, forCharacterRange: whole)
+            if let range = diagnosticRange, NSMaxRange(range) <= whole.length {
+                layout.addTemporaryAttributes([.underlineStyle: NSUnderlineStyle.single.rawValue,
+                                               .underlineColor: NSColor.systemRed], forCharacterRange: range)
+            }
         }
     }
 

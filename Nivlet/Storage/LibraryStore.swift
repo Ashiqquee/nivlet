@@ -1,22 +1,26 @@
-import CryptoKit
 import Foundation
 import SQLite3
-import UniformTypeIdentifiers
 
 nonisolated enum LibraryStoreError: LocalizedError, Sendable {
     case database(String)
     case newerVersion
     case invalidFile
+    case unreadableFile
+    case confirmLargeFile
     case fileTooLarge
     case injectedFailure
+    case diskFull
 
     var errorDescription: String? {
         switch self {
         case .database: "Couldn't save the library. Your changes are still here. Try again."
         case .newerVersion: "This library was saved by a newer version of Nivlet. Open it with that version."
         case .invalidFile: "Choose a regular file. Folders and symbolic links aren't supported."
-        case .fileTooLarge: "Choose a file smaller than 100 MB for this build."
+        case .unreadableFile: "Couldn't read this file. Restore access or choose the file again."
+        case .fileTooLarge: "Choose a file no larger than 2 GB."
+        case .confirmLargeFile: "This file is over 500 MB. Confirm before importing a copy."
         case .injectedFailure: "The test save failed. Your changes are still here. Try again."
+        case .diskFull: "Couldn't save because the disk is full. Free some space, then retry. Your changes are still here."
         }
     }
 }
@@ -25,34 +29,56 @@ nonisolated enum LibraryStoreError: LocalizedError, Sendable {
 /// runs on the actor executor, away from the main actor and pointer interactions.
 actor LibraryStore {
     let root: URL
+    private let assets: ReferenceAssetStore
     private var newestRevision: UInt64 = 0
-    private var shouldFailNextCommit = false
+    enum CommitFailure: Sendable { case rollback, diskFull, interrupted }
+    private var nextCommitFailure: CommitFailure?
 
-    init(root: URL) { self.root = root }
+    init(root: URL, assets: ReferenceAssetStore? = nil) {
+        self.root = root; self.assets = assets ?? ReferenceAssetStore(root: root)
+    }
 
-    func failNextCommitForTesting() { shouldFailNextCommit = true }
+    func failNextCommitForTesting(_ failure: CommitFailure = .rollback) { nextCommitFailure = failure }
 
     func load() throws -> LibrarySnapshot {
         try withDatabase { db in
             var snapshot = LibrarySnapshot.empty
-            let pockets = try rows(db, "SELECT id, name FROM pockets LIMIT 1")
-            guard let pocket = pockets.first, let id = UUID(uuidString: pocket[0]) else { return snapshot }
+            let pockets = try rows(db, "SELECT id, name FROM pockets")
+            guard pockets.count <= 1 else { throw LibraryStoreError.database("multiple pockets") }
+            guard let pocket = pockets.first else {
+                try execute(db, "BEGIN IMMEDIATE")
+                do {
+                    try insert(db, "INSERT INTO pockets VALUES (?, ?)", [snapshot.pocketID.uuidString, snapshot.pocketName])
+                    try insert(db, "INSERT INTO scratchpads VALUES (?, ?)", [snapshot.pocketID.uuidString, ""])
+                    try execute(db, "COMMIT")
+                } catch { try? execute(db, "ROLLBACK"); throw error }
+                return snapshot
+            }
+            guard let id = UUID(uuidString: pocket[0]) else { throw LibraryStoreError.database("invalid pocket") }
             snapshot.pocketID = id; snapshot.pocketName = pocket[1]
             for item in try rows(db, "SELECT id, kind, label, body, favorite, uses_fields FROM text_items ORDER BY position") {
                 guard let itemID = UUID(uuidString: item[0]) else { throw LibraryStoreError.database("invalid identity") }
-                if item[1] == "instruction" {
-                    snapshot.instructions.append(Instruction(id: itemID, label: item[2], body: item[3], isFavorite: item[4] == "1"))
-                } else {
-                    snapshot.prompts.append(SavedPrompt(id: itemID, label: item[2], source: item[3], isFavorite: item[4] == "1", usesFields: item[5] == "1"))
-                }
+                // Version 3 merged instructions into prompts; any kind loads as a prompt.
+                snapshot.prompts.append(SavedPrompt(id: itemID, label: item[2], source: item[3], isFavorite: item[4] == "1",
+                                                    usesFields: item[1] == "prompt" && item[5] == "1"))
             }
             snapshot.note = try rows(db, "SELECT body FROM scratchpads LIMIT 1").first?.first ?? ""
             for item in try rows(db, "SELECT id, label, note, display_name, asset, is_image FROM reference_items ORDER BY position") {
                 guard let itemID = UUID(uuidString: item[0]), Self.isDigest(item[4]) else { throw LibraryStoreError.database("invalid asset") }
+                let original = root.appending(path: "assets/\(item[4])/original")
                 snapshot.references.append(ReferenceItem(id: itemID, label: item[1], note: item[2], displayName: item[3],
-                    originalURL: root.appending(path: "assets/\(item[4])/original"), isImage: item[5] == "1"))
+                    originalURL: original, isImage: ReferenceAssetStore.isImageFile(original)))
             }
             return snapshot
+        }
+    }
+
+    /// A separate durable transaction records intent before replacing committed data.
+    /// It is removed in the same transaction as the successful library write.
+    func recoverableSnapshot() throws -> LibrarySnapshot? {
+        try withDatabase { db in
+            guard let json = try rows(db, "SELECT payload FROM pending_save WHERE id = 1").first?.first else { return nil }
+            return try JSONDecoder().decode(LibrarySnapshot.self, from: Data(json.utf8))
         }
     }
 
@@ -62,15 +88,22 @@ actor LibraryStore {
         // Even a failed newer write prevents a late older snapshot from winning.
         newestRevision = revision
         try withDatabase { db in
+            // Refuse to flatten a future multi-pocket library into this one-pocket build.
+            guard try rows(db, "SELECT id FROM pockets").count <= 1 else { throw LibraryStoreError.database("multiple pockets") }
+            let payload = String(decoding: try JSONEncoder().encode(snapshot), as: UTF8.self)
+            try insert(db, "INSERT OR REPLACE INTO pending_save VALUES (1, ?)", [payload])
+            let failure = nextCommitFailure
+            nextCommitFailure = nil
+            if failure == .diskFull {
+                // Real SQLITE_FULL, scoped to this connection; never fills the host disk.
+                let pages = try rows(db, "PRAGMA page_count")[0][0]
+                try execute(db, "PRAGMA max_page_count = \(pages)")
+            }
             try execute(db, "BEGIN IMMEDIATE")
             do {
                 try execute(db, "DELETE FROM text_items; DELETE FROM reference_items; DELETE FROM scratchpads; DELETE FROM pockets;")
                 let pocketID = snapshot.pocketID.uuidString
                 try insert(db, "INSERT INTO pockets VALUES (?, ?)", [pocketID, snapshot.pocketName])
-                for (position, item) in snapshot.instructions.enumerated() {
-                    try insert(db, "INSERT INTO text_items VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                        [item.id.uuidString, pocketID, "instruction", item.label, item.body, item.isFavorite ? "1" : "0", "\(position)", "0"])
-                }
                 for (position, item) in snapshot.prompts.enumerated() {
                     try insert(db, "INSERT INTO text_items VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                         [item.id.uuidString, pocketID, "prompt", item.label, item.source, item.isFavorite ? "1" : "0", "\(position)", item.usesFields ? "1" : "0"])
@@ -82,9 +115,16 @@ actor LibraryStore {
                     try insert(db, "INSERT INTO reference_items VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                         [item.id.uuidString, pocketID, item.label, item.note, item.displayName, digest, item.isImage ? "1" : "0", "\(position)"])
                 }
-                if shouldFailNextCommit { shouldFailNextCommit = false; throw LibraryStoreError.injectedFailure }
+                if failure == .rollback { throw LibraryStoreError.injectedFailure }
+                if failure == .interrupted {
+                    // SQLite cancels the next VM operation, just as an interrupted write.
+                    sqlite3_progress_handler(db, 1, { _ in 1 }, nil)
+                }
+                defer { sqlite3_progress_handler(db, 0, nil, nil) }
+                try execute(db, "DELETE FROM pending_save")
                 try execute(db, "COMMIT")
             } catch {
+                sqlite3_progress_handler(db, 0, nil, nil)
                 try? execute(db, "ROLLBACK")
                 throw error
             }
@@ -92,39 +132,12 @@ actor LibraryStore {
         return true
     }
 
-    /// Stage/copy/hash before metadata can reference the asset. Interrupted imports
-    /// may leave an unreferenced immutable asset; cleanup never deletes it here.
-    func importFile(_ source: URL) throws -> ReferenceItem {
-        let accessed = source.startAccessingSecurityScopedResource()
-        defer { if accessed { source.stopAccessingSecurityScopedResource() } }
-        let properties = try source.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey, .contentTypeKey])
-        guard properties.isRegularFile == true, properties.isSymbolicLink != true else { throw LibraryStoreError.invalidFile }
-        guard (properties.fileSize ?? 0) <= 100 * 1024 * 1024 else { throw LibraryStoreError.fileTooLarge }
-        let manager = FileManager.default
-        let staging = root.appending(path: "staging/\(UUID().uuidString)")
-        try manager.createDirectory(at: staging, withIntermediateDirectories: true)
-        defer { try? manager.removeItem(at: staging) }
-        let staged = staging.appending(path: "original")
-        try manager.copyItem(at: source, to: staged)
-        guard (try staged.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) <= 100 * 1024 * 1024 else { throw LibraryStoreError.fileTooLarge }
-        let handle = try FileHandle(forReadingFrom: staged)
-        defer { try? handle.close() }
-        var hasher = SHA256()
-        while let data = try handle.read(upToCount: 1 << 20), !data.isEmpty { hasher.update(data: data) }
-        let digest = hasher.finalize().map { String(format: "%02x", $0) }.joined()
-        let folder = root.appending(path: "assets/\(digest)")
-        try manager.createDirectory(at: folder, withIntermediateDirectories: true)
-        let destination = folder.appending(path: "original")
-        if manager.fileExists(atPath: destination.path) {
-            guard try destination.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink != true,
-                  try FileHandoff.sha256(of: destination) == digest else { throw LibraryStoreError.invalidFile }
-        } else {
-            try manager.moveItem(at: staged, to: destination)
-            try manager.setAttributes([.posixPermissions: 0o444], ofItemAtPath: destination.path)
-        }
-        return ReferenceItem(id: UUID(), label: source.deletingPathExtension().lastPathComponent, note: "",
-            displayName: source.lastPathComponent, originalURL: destination,
-            isImage: properties.contentType?.conforms(to: .image) == true)
+    func importFile(_ source: URL, confirmed: Bool = false) async throws -> ReferenceItem {
+        try await assets.importSource(.file(source), confirmed: confirmed)
+    }
+
+    func importSource(_ source: ReferenceImportSource, confirmed: Bool = false) async throws -> ReferenceItem {
+        try await assets.importSource(source, confirmed: confirmed)
     }
 
     private static func isDigest(_ value: String) -> Bool {
@@ -144,7 +157,7 @@ actor LibraryStore {
         sqlite3_busy_timeout(db, 3000)
         try execute(db, "PRAGMA foreign_keys = ON; PRAGMA synchronous = FULL;")
         let version = Int(try rows(db, "PRAGMA user_version").first?.first ?? "0") ?? 0
-        guard version <= 2 else { throw LibraryStoreError.newerVersion }
+        guard version <= 4 else { throw LibraryStoreError.newerVersion }
         if version == 0 {
             try execute(db, """
                 BEGIN IMMEDIATE;
@@ -158,17 +171,40 @@ actor LibraryStore {
                     id TEXT PRIMARY KEY, pocket_id TEXT NOT NULL REFERENCES pockets(id), label TEXT NOT NULL,
                     note TEXT NOT NULL, display_name TEXT NOT NULL, asset TEXT NOT NULL,
                     is_image INTEGER NOT NULL, position INTEGER NOT NULL);
-                PRAGMA user_version = 2;
+                CREATE TABLE pending_save (id INTEGER PRIMARY KEY CHECK(id = 1), payload TEXT NOT NULL);
+                PRAGMA user_version = 4;
                 COMMIT;
                 """)
         }
-        if version == 1 {
+        if (1...2).contains(version) {
+            // One snapshot of the untouched database before any migration step.
             try snapshotBeforeMigration(db, version: version)
+            if version == 1 {
+                try execute(db, """
+                    BEGIN IMMEDIATE;
+                    ALTER TABLE text_items ADD COLUMN uses_fields INTEGER NOT NULL DEFAULT 0;
+                    UPDATE text_items SET uses_fields = 1 WHERE kind = 'prompt' AND instr(body, '{{') > 0;
+                    PRAGMA user_version = 2;
+                    COMMIT;
+                    """)
+            }
+            // Version 3: instructions and prompts became one list. Former instructions
+            // follow the existing prompts in their own order, as plain prompts (no blanks).
             try execute(db, """
                 BEGIN IMMEDIATE;
-                ALTER TABLE text_items ADD COLUMN uses_fields INTEGER NOT NULL DEFAULT 0;
-                UPDATE text_items SET uses_fields = 1 WHERE kind = 'prompt' AND instr(body, '{{') > 0;
-                PRAGMA user_version = 2;
+                UPDATE text_items SET position = position + (SELECT COUNT(*) FROM text_items WHERE kind = 'prompt')
+                    WHERE kind = 'instruction';
+                UPDATE text_items SET kind = 'prompt', uses_fields = 0 WHERE kind = 'instruction';
+                PRAGMA user_version = 3;
+                COMMIT;
+                """)
+        }
+        if (1...3).contains(version) {
+            if version == 3 { try snapshotBeforeMigration(db, version: version) }
+            try execute(db, """
+                BEGIN IMMEDIATE;
+                CREATE TABLE pending_save (id INTEGER PRIMARY KEY CHECK(id = 1), payload TEXT NOT NULL);
+                PRAGMA user_version = 4;
                 COMMIT;
                 """)
         }
@@ -193,7 +229,11 @@ actor LibraryStore {
     }
 
     private func execute(_ db: OpaquePointer, _ sql: String) throws {
-        guard sqlite3_exec(db, sql, nil, nil, nil) == SQLITE_OK else { throw LibraryStoreError.database("execute") }
+        let result = sqlite3_exec(db, sql, nil, nil, nil)
+        guard result == SQLITE_OK else {
+            if result == SQLITE_FULL { throw LibraryStoreError.diskFull }
+            throw LibraryStoreError.database("execute")
+        }
     }
 
     private func insert(_ db: OpaquePointer, _ sql: String, _ values: [String]) throws {
@@ -206,7 +246,11 @@ actor LibraryStore {
             let result = value.withCString { sqlite3_bind_text(statement, Int32(index + 1), $0, Int32(value.utf8.count), unsafeBitCast(-1, to: sqlite3_destructor_type.self)) }
             guard result == SQLITE_OK else { throw LibraryStoreError.database("bind") }
         }
-        guard sqlite3_step(statement) == SQLITE_DONE else { throw LibraryStoreError.database("insert") }
+        let result = sqlite3_step(statement)
+        guard result == SQLITE_DONE else {
+            if result == SQLITE_FULL { throw LibraryStoreError.diskFull }
+            throw LibraryStoreError.database("insert")
+        }
     }
 
     private func rows(_ db: OpaquePointer, _ sql: String) throws -> [[String]] {

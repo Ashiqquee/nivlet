@@ -1,11 +1,26 @@
 /// A fill-in prompt as literal text and named fields.
 ///
-/// Phase 1 builds templates from segments directly. The Phase 3 parser will
-/// produce the same segments from `{{field_name}}` source text.
+/// Parsed once from opt-in `{{field_name}}` source; values stay literal.
 nonisolated struct PromptTemplate: Equatable, Sendable {
     enum Segment: Equatable, Sendable {
         case text(String)
         case field(String)
+    }
+
+    enum PreviewSpan: Equatable, Sendable {
+        case text(String), value(String), missing(String)
+        var text: String {
+            switch self { case .text(let text), .value(let text): text; case .missing(let name): "{{\(name)}}" }
+        }
+    }
+
+    func preview(_ values: [String: String]) -> [PreviewSpan] {
+        segments.map { segment in
+            switch segment {
+            case .text(let text): .text(text)
+            case .field(let name): Self.isFilled(values[name]) ? .value(values[name]!) : .missing(name)
+            }
+        }
     }
 
     var label: String
@@ -34,12 +49,7 @@ nonisolated struct PromptTemplate: Equatable, Sendable {
     /// Values are inserted literally and never parsed again.
     func render(_ values: [String: String]) -> String? {
         guard missingFields(in: values).isEmpty else { return nil }
-        return segments.reduce(into: "") { result, segment in
-            switch segment {
-            case .text(let text): result += text
-            case .field(let name): result += values[name] ?? ""
-            }
-        }
+        return preview(values).map(\.text).joined()
     }
 }
 

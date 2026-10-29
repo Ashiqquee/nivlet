@@ -10,7 +10,7 @@ A complete library can be exported, restored on a clean installation and recover
 
 ## Build sequence
 
-1. Define a versioned portable manifest for one/all pockets plus original assets. Include labels, order, instruction/template sources, reference notes, scratchpads/checklists and asset digests.
+1. Define a versioned portable manifest for one/all pockets plus original assets. Include labels, order, prompt sources and blank settings, reference notes, scratchpads/checklists and asset digests.
 2. Specify what is deliberately excluded, such as paid entitlement and machine/display preferences. Keep device-specific state separate; restoring must preserve actual working content.
 3. Export from a consistent snapshot; pin assets during export. Preview contents and disclose that exports can contain private material.
 4. Restore into staging, validate paths/schema/digests/file counts/expanded sizes, then commit transactionally. Reject traversal, symlink escape, malformed manifests, unsupported versions and archive bombs.
@@ -37,7 +37,7 @@ Recheck AC-04 original bytes after migration/restore. Verify garbage collection 
 
 ## Demo
 
-Export a real sample kit, start a clean local installation/data directory, import it and use its instructions/templates/reference files. Demonstrate refusal of an invalid archive without changing the existing library.
+Export a real sample kit, start a clean local installation/data directory, import it and use its prompts and reference files. Demonstrate refusal of an invalid archive without changing the existing library.
 
 ## Exit gate
 

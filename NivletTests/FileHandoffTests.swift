@@ -43,6 +43,26 @@ struct FileHandoffTests {
         #expect(!FileManager.default.isWritableFile(atPath: exported.path(percentEncoded: false)))
     }
 
+    @Test("A dragged reference carries a plain file URL for coding tools and terminals")
+    @MainActor
+    func dragCarriesFileURL() async throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        let source = try makeSource([7, 7, 7], name: "shot.png")
+        let exported = try FileHandoff(exportRoot: root.appending(path: "exports", directoryHint: .isDirectory))
+            .exportCopy(of: source, displayName: "shot.png")
+        let provider = ReferenceActions.provider(for: exported)
+        #expect(provider.registeredTypeIdentifiers.contains("public.file-url"))
+        #expect(provider.registeredTypeIdentifiers.contains("public.png"))
+        let loaded = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<URL, Error>) in
+            _ = provider.loadObject(ofClass: NSURL.self) { object, error in
+                if let url = object as? URL { continuation.resume(returning: url) }
+                else { continuation.resume(throwing: error ?? CocoaError(.fileReadUnknown)) }
+            }
+        }
+        #expect(loaded.standardizedFileURL == exported.standardizedFileURL)
+        #expect(try FileHandoff.sha256(of: loaded) == FileHandoff.sha256(of: source))
+    }
+
     @Test("Each export gets its own folder, so repeated drags never collide")
     func exportsDoNotCollide() throws {
         defer { try? FileManager.default.removeItem(at: root) }

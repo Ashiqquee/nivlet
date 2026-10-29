@@ -22,7 +22,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // relaunches; no working content is moved or overwritten.
             defaults.set(name, forKey: "NivletDevelopmentLibrary")
             let root = URL.applicationSupportDirectory.appending(path: "ashique.nivlet.Nivlet/verification-\(name)")
-            return ShellController(kit: PocketLibrary(root: root))
+            let boardName = defaults.string(forKey: "NivletVerificationPasteboard")
+            let board = boardName.flatMap { $0.hasPrefix("nivlet-verification-") ? NSPasteboard(name: .init($0)) : nil } ?? .general
+            return ShellController(kit: PocketLibrary(root: root), panelModel: PanelModel(pasteboard: board))
         }
         #endif
         return ShellController()
@@ -31,20 +33,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Unit tests run inside the app; they exercise types directly, not the shell windows.
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+        shell.start()
         #if DEBUG
         // App-local appearance override for reproducible native UI captures.
+        // Applied after start so it wins over the saved Appearance preference.
         if let appearance = UserDefaults.standard.string(forKey: "NivletAppearance") {
             NSApp.appearance = NSAppearance(named: appearance == "light" ? .aqua : .darkAqua)
         }
-        #endif
-        shell.start()
-        #if DEBUG
         // Verification hook: `open Nivlet.app --args -NivletOpenOnLaunch YES [-NivletTool prompts]`
         if let tool = UserDefaults.standard.string(forKey: "NivletTool").flatMap(PanelTool.init(rawValue:)) {
             shell.panelModel.tool = tool
         }
         if UserDefaults.standard.bool(forKey: "NivletOpenOnLaunch") {
             shell.open(source: .menu)
+        }
+        // Capture hook: `-NivletCaptureState preview|editor|actions|copy` once the library has loaded.
+        if let state = UserDefaults.standard.string(forKey: "NivletCaptureState") {
+            Task {
+                try? await Task.sleep(for: .seconds(1))
+                let model = shell.panelModel, kit = shell.kit
+                guard let id = model.resolvedSelection(kit) else { return }
+                switch state {
+                case "preview":
+                    if let item = ShelfIndex.textItems(model.tool, kit: kit).first(where: { $0.fieldCount > 0 }) { model.open(item) }
+                    else if model.tool == .references { model.inspector = .reference(id) }
+                case "editor":
+                    if let item = ShelfIndex.textItems(model.tool, kit: kit).first { model.edit(item, kit: kit) }
+                case "actions": model.showActions(kit: kit)
+                case "copy":
+                    // Repeats so a recording can catch several cycles.
+                    for _ in 0..<3 {
+                        model.simulateCopiedForCapture(id)
+                        try? await Task.sleep(for: .seconds(2.6))
+                    }
+                default: break
+                }
+            }
         }
         #endif
     }
