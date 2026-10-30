@@ -1,0 +1,227 @@
+Phase 5 native acceptance — 30 October 2026
+Apple M3 arm64; macOS 26.6.2 (25G83); Xcode 27.1 / macOS 27 SDK
+Review bundle: ashique.nivlet.phase5review
+Synthetic roots: phase5-source, phase5-clean (interactive) and phase5-proof (untouched integrity proof)
+Named pasteboard: nivlet-verification-phase5; general clipboard and working library untouched
+
+PASS native source kit: two pockets, two reviewed prompts, one original and a checklist
+PASS independent manifest/framing and SHA-256 checked after native Save
+PASS disposable source removed before clean-library restore
+
+EXPORT
+PASS Find menu Pocket: Writing
+PASS Find Export all pockets…
+PASS Press Export all pockets…
+PASS Native export preview provides Save archive
+PASS Export preview names both fixture pockets
+PASS Export preview discloses private material
+
+SAVE-CANCEL
+PASS Native Save panel exists before Cancel
+PASS Find native Save Cancel
+PASS Native Save Cancel preserves the export preview
+
+PUBLISH
+PASS Find Save archive
+PASS Press Save archive
+PASS Native export synchronised and published the archive
+PASS Find Done
+PASS Press Done
+
+RESTORE-CANCEL
+PASS Find Open Nivlet
+PASS Press Open Nivlet
+PASS Find menu Pocket: My pocket
+PASS Menu is enabled after library load
+PASS Open the native menu
+PASS Find Restore archive…
+PASS Press Restore archive…
+PASS Native restore file browser opens
+PASS Only the review app receives native file-panel keys
+PASS Native Go to Folder opens
+PASS Find the file browser's path field
+PASS Select the exact disposable archive path
+PASS Selected path matches the intended archive
+PASS Only the review app receives native file-panel keys
+PASS Find Preview archive
+PASS Press Preview archive
+PASS Validated restore preview shows the exact two fixture pockets
+PASS Find Cancel
+PASS Press Cancel
+PASS Restore Cancel leaves the clean pocket active
+
+INVALID
+PASS Find menu Pocket: My pocket
+PASS Menu is enabled after library load
+PASS Open the native menu
+PASS Find Restore archive…
+PASS Press Restore archive…
+PASS Native restore file browser opens
+PASS Only the review app receives native file-panel keys
+PASS Native Go to Folder opens
+PASS Find the file browser's path field
+PASS Select the exact disposable archive path
+PASS Selected path matches the intended archive
+PASS Only the review app receives native file-panel keys
+PASS Find Preview archive
+PASS Press Preview archive
+PASS Tampered original is refused in native restore
+PASS Invalid archive cannot be committed
+PASS Find Cancel
+PASS Press Cancel
+
+RESTORE
+PASS Find menu Pocket: My pocket
+PASS Menu is enabled after library load
+PASS Open the native menu
+PASS Find Restore archive…
+PASS Press Restore archive…
+PASS Native restore file browser opens
+PASS Only the review app receives native file-panel keys
+PASS Native Go to Folder opens
+PASS Find the file browser's path field
+PASS Select the exact disposable archive path
+PASS Selected path matches the intended archive
+PASS Only the review app receives native file-panel keys
+PASS Find Preview archive
+PASS Press Preview archive
+PASS Native restore reviews two pockets before commit
+PASS Find Restore as new
+PASS Press Restore as new
+PASS Native restore reports a completed atomic import
+PASS Find Done
+PASS Press Done
+
+USE
+PASS Find Open Nivlet
+PASS Press Open Nivlet
+PASS Find Prompts
+PASS Press Prompts
+PASS Find Archive review ✅
+PASS Press Archive review ✅
+PASS Restored plain prompt retains exact literal braces and Unicode
+PASS Find Copy prompt
+PASS Press Copy prompt
+PASS Restored native Copy matches reviewed source on the private pasteboard
+PASS Find References
+PASS Press References
+PASS Find Preview nivlet-phase5-original
+PASS Press Preview nivlet-phase5-original
+PASS Restored original previews after source removal
+PASS Find Scratchpad
+PASS Press Scratchpad
+PASS Find Edit text
+PASS Press Edit text
+PASS Restored scratchpad preserves checklist state and text
+PASS Find Done
+PASS Press Done
+
+CLEANUP
+PASS Find menu Pocket: My pocket
+PASS Menu is enabled after library load
+PASS Open the native menu
+PASS Find Clean unused files…
+PASS Press Clean unused files…
+PASS Find Clean unused files
+PASS Press Clean unused files
+PASS Native cleanup retains restored owned files
+PASS Find Done
+PASS Press Done
+
+ONE
+PASS Find Open Nivlet
+PASS Press Open Nivlet
+PASS Find menu Pocket: My pocket
+PASS Menu is enabled after library load
+PASS Open the native menu
+PASS Find Export this pocket…
+PASS Press Export this pocket…
+PASS Native one-pocket preview includes only the active restored kit
+
+ERROR-PREVIEW
+PASS Find menu Pocket: My pocket
+PASS Menu is enabled after library load
+PASS Open the native menu
+PASS Find Restore archive…
+PASS Press Restore archive…
+PASS Native restore file browser opens
+PASS Only the review app receives native file-panel keys
+PASS Native Go to Folder opens
+PASS Find the file browser's path field
+PASS Select the exact disposable archive path
+PASS Selected path matches the intended archive
+PASS Only the review app receives native file-panel keys
+PASS Find Preview archive
+PASS Press Preview archive
+PASS Native invalid-archive error remains visible with Restore disabled
+
+CLEAN-QUIT
+PASS Find Open Nivlet
+PASS Press Open Nivlet
+PASS Request normal native termination
+PASS Native quit flushed the isolated review library
+
+RESTART
+PASS Restored active pocket survives native relaunch
+PASS Find Pin panel
+PASS Press Pin panel
+PASS Restored scratchpad tool bookmark survives relaunch
+PASS Find Edit text
+PASS Press Edit text
+PASS Restored checklist rows remain visible after native quit/relaunch
+PASS Find Done
+PASS Press Done
+PASS Find References
+PASS Press References
+PASS Find Preview nivlet-phase5-original
+PASS Press Preview nivlet-phase5-original
+PASS Restored owned original remains readable after relaunch and cleanup
+PASS Find References
+PASS Press References
+
+FINAL-QUIT
+PASS Request normal native termination
+PASS Native quit flushed the isolated review library
+
+PROOF-RESTORE
+PASS Find Open Nivlet
+PASS Press Open Nivlet
+PASS Find menu Pocket: My pocket
+PASS Menu is enabled after library load
+PASS Open the native menu
+PASS Find Restore archive…
+PASS Press Restore archive…
+PASS Native restore file browser opens
+PASS Only the review app receives native file-panel keys
+PASS Native Go to Folder opens
+PASS Find the file browser's path field
+PASS Select the exact disposable archive path
+PASS Selected path matches the intended archive
+PASS Only the review app receives native file-panel keys
+PASS Find Preview archive
+PASS Press Preview archive
+PASS Native restore reviews two pockets before commit
+PASS Find Restore as new
+PASS Press Restore as new
+PASS Native restore reports a completed atomic import
+PASS Find Done
+PASS Press Done
+
+PROOF-QUIT
+PASS Request normal native termination
+PASS Native quit flushed the isolated review library
+
+PROOF-LOADED
+PASS Untouched proof library finishes loading after native relaunch
+
+PROOF-RELAUNCH-QUIT
+PASS Request normal native termination
+PASS Native quit flushed the isolated review library
+
+PASS initial phase5-clean restore appended exactly two new independent pockets; no partial pockets from Cancel/refusal
+PASS full phase5-proof raw comparison after relaunch: exact ordered prompt text/flags, notes, checklist and original metadata/digests
+PASS original bytes remain SHA-256 identical and read-only; normal journal is clear and archive pins/staging are released
+PASS 420 × 640 and 320 × 360 export previews inspected; 320 × 360 corrupt-archive Restore is disabled and readable
+
+The interactive fixture acquired a trailing scratchpad character after its initial exact restore check; it was preserved. Final complete-content comparison uses an untouched native proof root.
+Not verified: full VoiceOver/Full Keyboard Access, all unpinned transitions, OS 14/27 runtime, Intel, max-size throughput, actual power loss, live filesystem-rename interruption, display/Spaces matrix and external drops.

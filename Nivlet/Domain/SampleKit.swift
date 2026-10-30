@@ -11,6 +11,21 @@ nonisolated struct ReferenceItem: Identifiable, Equatable, Sendable, Codable {
     var originalURL: URL
     var isImage: Bool
     var byteCount: Int64? = nil
+    var isFavorite = false
+    enum CodingKeys: String, CodingKey { case id, label, note, displayName, originalURL, isImage, byteCount, isFavorite }
+    init(id: UUID, label: String, note: String, displayName: String, originalURL: URL, isImage: Bool,
+         byteCount: Int64? = nil, isFavorite: Bool = false) {
+        self.id = id; self.label = label; self.note = note; self.displayName = displayName
+        self.originalURL = originalURL; self.isImage = isImage; self.byteCount = byteCount; self.isFavorite = isFavorite
+    }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id); label = try c.decode(String.self, forKey: .label)
+        note = try c.decode(String.self, forKey: .note); displayName = try c.decode(String.self, forKey: .displayName)
+        originalURL = try c.decode(URL.self, forKey: .originalURL); isImage = try c.decode(Bool.self, forKey: .isImage)
+        byteCount = try c.decodeIfPresent(Int64.self, forKey: .byteCount)
+        isFavorite = try c.decodeIfPresent(Bool.self, forKey: .isFavorite) ?? false
+    }
 }
 
 /// In-memory sample pocket for the Phase 1 shell. Edits survive tucking and

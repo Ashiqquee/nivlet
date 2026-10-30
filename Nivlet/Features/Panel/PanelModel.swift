@@ -1,7 +1,7 @@
 import AppKit
 import Observation
 
-nonisolated enum PanelTool: String, CaseIterable, Identifiable, Sendable {
+nonisolated enum PanelTool: String, CaseIterable, Identifiable, Sendable, Codable {
     case prompts, references, notes
     var id: String { rawValue }
     var symbol: String {
@@ -48,6 +48,10 @@ final class PanelModel {
     var tool: PanelTool = .prompts
     var inspector: PanelInspector?
     var draft: TextDraft?
+    var searchScope: PocketSearchScope = .active { didSet { if searchScope != oldValue { selection = nil; actionsOpen = false } } }
+    var archivePresentation: ArchivePresentation?
+    var moveRequest: PocketMoveRequest?
+    @ObservationIgnored var pocketViews: [UUID: PocketViewState] = [:]
     var query = "" { didSet { if query != oldValue { selection = nil; actionsOpen = false } } }
     /// Highlighted list item; `nil` falls back to the first visible row.
     var selection: UUID?
@@ -68,12 +72,26 @@ final class PanelModel {
     @ObservationIgnored private var pendingTool: PanelTool?
     @ObservationIgnored private var feedbackTask: Task<Void, Never>?
 
+    var hasUnsubmittedDrafts: Bool {
+        draft?.hasChanges == true || pocketViews.values.contains { $0.draft?.hasChanges == true }
+    }
+
+    func discardAllDrafts() {
+        discardDraft()
+        for id in pocketViews.keys {
+            pocketViews[id]?.draft = nil
+            if pocketViews[id]?.inspector == .editor { pocketViews[id]?.inspector = nil }
+        }
+    }
+
     func select(_ tool: PanelTool) {
+        guard archivePresentation == nil else { return }
         guard !(draft?.hasChanges ?? false) else { pendingTool = tool; showDiscardConfirmation = true; return }
         self.tool = tool; inspector = nil; draft = nil; query = ""; selection = nil; actionsOpen = false
     }
 
     func beginNew() {
+        guard archivePresentation == nil else { return }
         guard tool == .prompts else { return }
         guard !(draft?.hasChanges ?? false) else { showDiscardConfirmation = true; return }
         draft = TextDraft(tool: tool)
@@ -82,6 +100,7 @@ final class PanelModel {
     }
 
     func beginScratchpadTask() {
+        guard archivePresentation == nil else { return }
         focusForEditing()
         newScratchpadTaskRequest += 1
     }
@@ -93,6 +112,7 @@ final class PanelModel {
     }
 
     func closeChild() -> Bool {
+        if moveRequest != nil { moveRequest = nil; return true }
         if actionsOpen { actionsOpen = false; return true }
         guard inspector != nil else { return false }
         if draft?.hasChanges == true { pendingTool = nil; showDiscardConfirmation = true; return true }
@@ -101,6 +121,12 @@ final class PanelModel {
     }
 
     func discardDraft() {
+        if let discarded = draft {
+            for id in pocketViews.keys where pocketViews[id]?.draft === discarded {
+                pocketViews[id]?.draft = nil
+                if pocketViews[id]?.inspector == .editor { pocketViews[id]?.inspector = nil }
+            }
+        }
         draft = nil; inspector = nil
         if let destination = pendingTool { tool = destination; query = "" }
         pendingTool = nil

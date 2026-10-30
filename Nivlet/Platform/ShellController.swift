@@ -1,6 +1,7 @@
 import AppKit
 import Observation
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Owns the one edge tab and one content panel, and decides when they open,
 /// tuck, pin and move between displays.
@@ -20,6 +21,9 @@ final class ShellController: NSObject {
     var isPinned = false {
         didSet { updateOutsideClickMonitor() }
     }
+    private var childIsPresented: Bool {
+        presentingChild || archivePicker != nil || referencePicker != nil || panelModel.archivePresentation != nil || contentPanel?.attachedSheet != nil
+    }
     private var presentingChild = false {
         didSet { updateOutsideClickMonitor() }
     }
@@ -29,6 +33,7 @@ final class ShellController: NSObject {
 
     @ObservationIgnored private var tabPanel: EdgeTabPanel?
     @ObservationIgnored private var contentPanel: ContentPanel?
+    @ObservationIgnored private var archivePicker: NSSavePanel?
     @ObservationIgnored private var referencePicker: NSOpenPanel?
     @ObservationIgnored private var outsideClickMonitor: Any?
     @ObservationIgnored private var observers: [(NotificationCenter, NSObjectProtocol)] = []
@@ -68,7 +73,7 @@ final class ShellController: NSObject {
         contentPanel = panel
         panel.canPasteReferences = { [weak self] in
             guard let self else { return false }
-            return self.panelModel.tool == .references && self.panelModel.inspector == nil && self.kit.isLoaded && !self.kit.isPreview && !self.kit.isImporting && ReferencePasteboard.canPaste(from: self.panelModel.transferPasteboard)
+            return self.panelModel.archivePresentation == nil && self.panelModel.tool == .references && self.panelModel.inspector == nil && self.kit.isLoaded && !self.kit.isPreview && !self.kit.isImporting && !self.kit.isSwitching && self.panelModel.query.isEmpty && ReferencePasteboard.canPaste(from: self.panelModel.transferPasteboard)
         }
         panel.onPasteReferences = { [weak self] in
             guard let self else { return }
@@ -76,9 +81,12 @@ final class ShellController: NSObject {
             Task { await self.kit.importSources(sources) }
         }
         panelModel.focusForEditing = { [weak panel] in panel?.makeKey() }
-        panel.onFind = { [weak self] in self?.panelModel.searchFocusRequest += 1 }
+        panel.onFind = { [weak self] in
+            guard let self, self.panelModel.archivePresentation == nil else { return }
+            self.panelModel.searchFocusRequest += 1
+        }
         panel.onNew = { [weak self] in
-            guard let self else { return }
+            guard let self, self.panelModel.archivePresentation == nil else { return }
             if self.panelModel.tool == .references { self.chooseReferenceFiles() }
             else if self.panelModel.tool == .notes { self.panelModel.beginScratchpadTask() }
             else { self.panelModel.beginNew() }
@@ -88,7 +96,7 @@ final class ShellController: NSObject {
             return self.panelModel.handle(key, kit: self.kit)
         }
         panel.onUndoDelete = { [weak self] in
-            guard let self, self.kit.canUndoDelete else { return false }
+            guard let self, self.panelModel.archivePresentation == nil, self.kit.canUndoDelete else { return false }
             self.kit.undoDelete(); return true
         }
 
@@ -158,7 +166,7 @@ final class ShellController: NSObject {
 
     /// Commits any edit in progress, then slides the panel away and restores the tab.
     func tuck() {
-        guard isOpen, !presentingChild, let panel = contentPanel else { return }
+        guard isOpen, !childIsPresented, let panel = contentPanel else { return }
         panel.makeFirstResponder(nil)
         kit.flushSoon()
         // Keep unsaved editor drafts recoverable across click-away/tuck.
@@ -217,6 +225,7 @@ final class ShellController: NSObject {
 
     /// Escape closes the innermost child first, then tucks.
     func handleEscape() -> Bool {
+        if panelModel.archivePresentation != nil { return false } // Let the preview's Cancel shortcut handle Escape.
         if panelModel.closeChild() { return true }
         guard isOpen else { return false }
         tuck()
@@ -225,7 +234,7 @@ final class ShellController: NSObject {
 
     /// Passive global monitor: it observes clicks in other apps without consuming them.
     private func updateOutsideClickMonitor() {
-        let wanted = isOpen && !isPinned && !presentingChild
+        let wanted = isOpen && !isPinned && !childIsPresented
         if wanted, outsideClickMonitor == nil {
             outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self] _ in
                 MainActor.assumeIsolated { self?.tuck() }
@@ -320,7 +329,7 @@ final class ShellController: NSObject {
     }
 
     private func chooseReferenceFiles(retryID: UUID?) {
-        guard kit.isLoaded, !kit.isPreview, !presentingChild, let panel = contentPanel else { return }
+        guard kit.isLoaded, !kit.isPreview, panelModel.archivePresentation == nil, !presentingChild, let panel = contentPanel else { return }
         presentingChild = true
         panel.makeKey()
         let picker = NSOpenPanel()
@@ -356,6 +365,52 @@ final class ShellController: NSObject {
         }
         let frame = picker.frame
         picker.setFrameOrigin(CGPoint(x: visible.midX - frame.width / 2, y: visible.midY - frame.height / 2))
+    }
+
+    func focusArchivePreview() {
+        guard let panel = contentPanel else { return }
+        panel.makeKey(); panel.makeFirstResponder(panel.contentView)
+    }
+
+    func chooseArchiveDestination(completion: @escaping (URL?) -> Void) {
+        let picker = NSSavePanel()
+        picker.title = "Save Nivlet archive"; picker.prompt = "Save archive"
+        picker.nameFieldStringValue = "Nivlet pockets.nivlet"
+        picker.allowedContentTypes = [.init(filenameExtension: "nivlet") ?? .data]
+        presentArchivePicker(picker) { response in completion(response == .OK ? picker.url : nil) }
+    }
+
+    func chooseArchiveToRestore() {
+        let picker = NSOpenPanel()
+        picker.title = "Choose Nivlet archive"; picker.prompt = "Preview archive"
+        picker.canChooseFiles = true; picker.canChooseDirectories = false; picker.allowsMultipleSelection = false
+        picker.resolvesAliases = false
+        picker.allowedContentTypes = [.init(filenameExtension: "nivlet") ?? .data]
+        presentArchivePicker(picker) { [weak self] response in
+            if response == .OK, let url = picker.url { self?.panelModel.archivePresentation = ArchivePresentation(mode: .restore(url)) }
+        }
+    }
+
+    private func presentArchivePicker(_ picker: NSSavePanel, completion: @escaping (NSApplication.ModalResponse) -> Void) {
+        guard archivePicker == nil, referencePicker == nil, let panel = contentPanel,
+              !presentingChild || panelModel.archivePresentation != nil else { completion(.cancel); return }
+        // A reviewed archive preview may request Save. Keep overlapping native
+        // pickers blocked and protect the utility while the browser is active.
+        let parent = panel.attachedSheet ?? panel
+        presentingChild = true; archivePicker = picker
+        parent.makeKey(); picker.level = .modalPanel; parent.ignoresMouseEvents = true
+        NSApp.activate(ignoringOtherApps: true)
+        picker.begin { [weak self] response in
+            guard let self else { return }
+            self.archivePicker = nil; parent.ignoresMouseEvents = false
+            parent.orderFrontRegardless(); parent.makeKey()
+            self.presentingChild = panel.attachedSheet != nil
+            completion(response)
+        }
+        if let visible = (panel.screen ?? restingScreen)?.visibleFrame {
+            let frame = picker.frame
+            picker.setFrameOrigin(CGPoint(x: visible.midX - frame.width / 2, y: visible.midY - frame.height / 2))
+        }
     }
 
     private func panelSize(in screen: NSScreen) -> CGSize {
@@ -444,11 +499,11 @@ final class ShellController: NSObject {
 extension ShellController: NSWindowDelegate {
     /// Command-Tab or clicking another app's window while editing tucks an unpinned panel.
     func windowDidResignKey(_ notification: Notification) {
-        guard isOpen, !isPinned, !presentingChild else { return }
+        guard isOpen, !isPinned, !childIsPresented else { return }
         // AppKit can resign the parent before SwiftUI's confirmation window
         // becomes key. Decide after that transition, preserving sheets/alerts.
         DispatchQueue.main.async { [weak self] in
-            guard let self, self.isOpen, !self.isPinned, !self.presentingChild,
+            guard let self, self.isOpen, !self.isPinned, !self.childIsPresented,
                   let panel = self.contentPanel, !panel.isKeyWindow,
                   panel.attachedSheet == nil, NSApp.modalWindow == nil else { return }
             if let key = NSApp.keyWindow, key !== panel { return }
@@ -461,7 +516,7 @@ extension ShellController: NSWindowDelegate {
     }
 
     func windowDidEndSheet(_ notification: Notification) {
-        presentingChild = false
+        presentingChild = archivePicker != nil || referencePicker != nil
         updateOutsideClickMonitor()
     }
 

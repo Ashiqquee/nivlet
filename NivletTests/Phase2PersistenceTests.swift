@@ -29,7 +29,7 @@ struct Phase2PersistenceTests {
         try await store.save(original, revision: 1)
         var db: OpaquePointer?
         try #require(sqlite3_open(folder.appending(path: "library.sqlite").path, &db) == SQLITE_OK)
-        let result = sqlite3_exec(db, "DROP TABLE pending_save; PRAGMA user_version = 3", nil, nil, nil)
+        let result = sqlite3_exec(db, "DROP TABLE pending_save; DROP TABLE library_state; ALTER TABLE pockets DROP COLUMN position; ALTER TABLE pockets DROP COLUMN deleted_at; ALTER TABLE pockets DROP COLUMN view_state; ALTER TABLE reference_items DROP COLUMN favorite; ALTER TABLE reference_items DROP COLUMN byte_count; PRAGMA user_version = 3", nil, nil, nil)
         sqlite3_close(db)
         #expect(result == SQLITE_OK)
         let reopened = LibraryStore(root: folder)

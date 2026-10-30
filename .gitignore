@@ -81,3 +81,9 @@ docs/implementation/*
 !docs/implementation/phase2-persistence/
 !docs/implementation/phase3-vertical-slice.md
 !docs/implementation/phase3-vertical-slice/
+!docs/implementation/phase4-pockets.md
+!docs/implementation/phase4-pockets/
+!docs/implementation/phase5-recovery.md
+!docs/implementation/phase5-recovery/
+docs/reference/*
+website

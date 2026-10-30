@@ -1,12 +1,12 @@
 # Nivlet — AI work side panel
 
-Local requirements derived from the supplied PRD v0.3 · updated 27 October 2026
+Local requirements derived from the supplied PRD v0.3 · updated 29 October 2026
 
 Source: [Original Brief Board product requirements](https://files.instinct.com/ipl7v9gvfnb3-brief-board-product-requirements). All four source sections were read: Product, Experience, Engineering, and Release & sources. This is a local adaptation, not a verbatim export.
 
 Related: [Research and release scope](ai-shelf-product-research.md) · [Architecture](architecture.md) · [Build phases](phases.md) · [UI references](../references/ui-ux/README.md) · [Refbox design reference](https://ref.box/)
 
-Status: proposed first release; no app implementation or launch. The owner selected Nivlet as the project name on 27 October 2026, replacing the earlier Brief Board working label. Visual identity and domain/brand clearance remain open. Requirements describe intended behavior; measurements and compatibility checks have not been completed. Choices explicitly marked proposed remain open.
+Status: native development implementation; Phases 2–5 pass their local gates ([Phase 5 evidence](implementation/phase5-recovery.md)). Distribution and final acceptance checks remain incomplete; no launch. The owner selected Nivlet as the project name on 27 October 2026, replacing the earlier Brief Board working label. Visual identity and domain/brand clearance remain open. Requirements describe intended behavior; measurements and compatibility checks have not been completed. Choices explicitly marked proposed remain open.
 
 ## 01 · Product contract
 
@@ -15,7 +15,7 @@ A discreet tab at the edge of the Mac screen opens a compact toolkit beside the 
 - Website download; no App Store for v1.
 - No in-app model, provider API, API key, generated prompts or AI subscription. Local tools function offline.
 - Click the edge tab to open; Pin keeps the panel visible. Menu-bar and keyboard access are alternatives.
-- The five first-release features are the product; the panel is their shared shell.
+- The four first-release tools are the product; the panel is their shared shell.
 - Desired one-time price: US$1–3 for continued base-app use. US$2 before applicable tax is proposed, not final.
 
 “No API” means no model/provider dependency. Checkout, licence delivery and optional signed update checks still need distribution infrastructure. External AI services are separate and may charge their own fees.

@@ -36,6 +36,7 @@ struct TextShelfView: View {
                     }
                     .padding(.horizontal, 12).padding(.bottom, 14)
                 }
+                .onAppear { if let id = model.selection { proxy.scrollTo(id) } }
                 .onChange(of: model.revealRequest) {
                     guard let id = model.revealRequest else { return }
                     proxy.scrollTo(id)

@@ -1,6 +1,6 @@
 # Phase 5 — Portable ownership and recovery
 
-Status: **Not started** · Depends on: Phase 4 pocket ownership/lifecycle
+Status: **Local gate passed · 30 October 2026** · Depends on: Phase 4 pocket ownership/lifecycle
 
 [Phase overview](../phases.md) · [Previous](phase4_deliverables.md) · [Next: Phase 6](phase6_deliverables.md)
 
@@ -20,12 +20,12 @@ A complete library can be exported, restored on a clean installation and recover
 
 ## Deliverables
 
-- [ ] Portable one-pocket/all-pocket export and validated import-as-new restore.
-- [ ] Versioned schema/manifest documentation and disposable fixtures.
-- [ ] Migration snapshot and recovery/rollback procedure.
-- [ ] Safe asset retention/cleanup across live data, trash and exports.
-- [ ] Archive validation, atomic restore, byte integrity and failure-recovery tests.
-- [ ] `docs/implementation/phase5-recovery.md`: round-trip evidence and recovery instructions.
+- [x] Portable one-pocket/all-pocket export and validated import-as-new restore.
+- [x] Versioned schema/manifest documentation and disposable fixtures.
+- [x] Migration snapshot and recovery/rollback procedure.
+- [x] Safe asset retention/cleanup across live data, trash and exports.
+- [x] Archive validation, atomic restore, byte integrity and failure-recovery tests.
+- [x] `docs/implementation/phase5-recovery.md`: round-trip evidence and recovery instructions.
 
 ## Verify
 
@@ -38,6 +38,10 @@ Recheck AC-04 original bytes after migration/restore. Verify garbage collection 
 ## Demo
 
 Export a real sample kit, start a clean local installation/data directory, import it and use its prompts and reference files. Demonstrate refusal of an invalid archive without changing the existing library.
+
+## Recorded evidence
+
+[Implementation and recovery procedure](../implementation/phase5-recovery.md): 113 tests / 200 cases, native one/all export previews, scoped Save/Cancel, clean-library Cancel/refusal/import-as-new, exact restored text/original/checklist use and safe cleanup. [Format 1 and disposable fixtures](../archive-format.md) document framing, bounds and exclusions. Release OS/display/VoiceOver/large-file compatibility remains open.
 
 ## Exit gate
 

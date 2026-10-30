@@ -8,18 +8,22 @@ struct PanelRootView: View {
     @Namespace private var toolSelection
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.layoutDirection) private var contentDirection
+    @State private var creatingPocket = false
+    @State private var deletingPocket = false
     @State private var renaming = false
     @State private var pocketName = ""
     @State private var pocketHovered = false
     @State private var showingPinFeedback = false
 
-    private var isListMode: Bool { kit.isLoaded && model.inspector == nil && model.tool != .notes }
+    private var isListMode: Bool { kit.isLoaded && model.inspector == nil && model.tool != .notes && model.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     var body: some View {
         HStack(spacing: 8) {
             shelf.environment(\.layoutDirection, contentDirection)
             rail.environment(\.layoutDirection, contentDirection)
         }
+        .disabled(model.archivePresentation != nil)
+        .accessibilityHidden(model.archivePresentation != nil)
         // Mirror the two surfaces without recreating their editing state.
         // The action rail always sits toward the centre of the desktop.
         .environment(\.layoutDirection, shell.preferences.edge == .right ? .rightToLeft : .leftToRight)
@@ -27,10 +31,38 @@ struct PanelRootView: View {
         .font(ShelfStyle.body)
         .foregroundStyle(ShelfStyle.ink)
         .ignoresSafeArea()
-        .task { await kit.load() }
+        .task { await kit.load(); model.restorePocketView(kit) }
+        .onChange(of: model.bookmark) { kit.updateView(model.bookmark) }
+        .disabled(kit.isSwitching)
+        .onChange(of: kit.prompts.map(\.id)) { if !kit.isSwitching { model.reconcileSelection(kit) } }
+        .onChange(of: kit.references.map(\.id)) { if !kit.isSwitching { model.reconcileSelection(kit) } }
+        .overlay {
+            if let presentation = model.archivePresentation {
+                ZStack {
+                    Color.black.opacity(0.18).ignoresSafeArea().contentShape(Rectangle())
+                    ArchiveTransferView(presentation: presentation, kit: kit, shell: shell) { model.archivePresentation = nil }
+                        .id(presentation.id).panelSurface(radius: 13)
+                        .shadow(color: .black.opacity(0.3), radius: 20, y: 8)
+                }
+            }
+        }
+        .sheet(item: $model.moveRequest) { _ in MoveToPocketView(kit: kit, model: model) }
+        .alert("New pocket", isPresented: $creatingPocket) {
+            TextField("Pocket name", text: $pocketName)
+            Button("Create pocket") {
+                if let id = kit.createPocket(pocketName) { Task { await model.switchPocket(to: id, kit: kit) } }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { Text("Each pocket has its own prompts, references and scratchpad.") }
+        .alert("Delete “\(kit.pocketName)”?", isPresented: $deletingPocket) {
+            Button("Delete pocket", role: .destructive) { Task { await model.deletePocket(kit: kit) } }
+            Button("Cancel", role: .cancel) {}
+        } message: { Text("Its complete kit can be restored from Deleted pockets for seven days. This does not change any AI conversation.") }
         .onChange(of: model.searchFocusRequest) { searchFocused = true }
         .onChange(of: model.tool) { kit.flushSoon() }
-        .onChange(of: searchFocused) { if searchFocused { kit.flushSoon() } }
+        .onChange(of: searchFocused) {
+            if searchFocused { model.focusForEditing(); kit.flushSoon() }
+        }
         .confirmationDialog("Discard your unsaved changes?", isPresented: $model.showDiscardConfirmation, titleVisibility: .visible) {
             Button("Discard changes", role: .destructive) { model.discardDraft() }
             Button("Keep editing", role: .cancel) { model.cancelPendingNavigation() }
@@ -51,9 +83,9 @@ struct PanelRootView: View {
         VStack(spacing: 0) {
             if model.inspector == nil {
                 header
-                if model.tool != .notes { search }
+                search
             } else {
-                Color.clear.frame(height: 14)
+                HStack { Spacer(); pocketMenu(compact: false) }.padding(.horizontal, 14).padding(.vertical, 8)
             }
             ZStack {
                 if !kit.isLoaded {
@@ -66,6 +98,8 @@ struct PanelRootView: View {
                 } else if model.inspector == .editor, let draft = model.draft {
                     TextItemEditor(kit: kit, model: model, draft: draft)
                         .transition(.opacity.combined(with: .offset(x: shell.preferences.edge == .right ? 16 : -16)))
+                } else if model.inspector == nil, !model.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    PocketSearchView(kit: kit, model: model)
                 } else {
                     Group {
                         switch model.tool {
@@ -75,7 +109,7 @@ struct PanelRootView: View {
                         case .notes: NotesView(kit: kit, newTaskRequest: model.newScratchpadTaskRequest)
                         }
                     }
-                    .id(model.tool)
+                    .id("\(kit.pocketID)-\(model.tool.rawValue)")
                     .transition(.opacity)
                 }
             }
@@ -144,10 +178,37 @@ struct PanelRootView: View {
 
     private func pocketMenu(compact: Bool) -> some View {
         Menu {
-            Text("Current pocket")
-            Button { pocketName = kit.pocketName; renaming = true } label: {
-                Label("Rename pocket…", systemImage: "pencil")
+            ForEach(kit.pockets) { pocket in
+                Button { Task { await model.switchPocket(to: pocket.pocketID, kit: kit) } } label: {
+                    if pocket.pocketID == kit.pocketID { Label(pocket.pocketName, systemImage: "checkmark") }
+                    else { Text(pocket.pocketName) }
+                }
             }
+            Divider()
+            Button("New pocket…") { pocketName = ""; creatingPocket = true }
+            Button("Rename pocket…") { pocketName = kit.pocketName; renaming = true }
+            Button("Duplicate pocket") { _ = kit.duplicatePocket() }
+            Button("Move pocket up") { kit.reorderPocket(id: kit.pocketID, by: -1) }
+                .disabled(!kit.canReorderPocket(id: kit.pocketID, by: -1))
+            Button("Move pocket down") { kit.reorderPocket(id: kit.pocketID, by: 1) }
+                .disabled(!kit.canReorderPocket(id: kit.pocketID, by: 1))
+            Menu("Deleted pockets") {
+                let deleted = kit.recoverablePockets()
+                if deleted.isEmpty { Text("No recoverable pockets") }
+                ForEach(deleted) { entry in
+                    Button("Restore \(entry.pocket.pocketName)") {
+                        if !kit.restorePocket(id: entry.id) { model.showFeedback("This pocket’s recovery period has ended.", isError: true) }
+                    }
+                    Text("Available until \(entry.expiresAt.formatted(date: .abbreviated, time: .shortened))")
+                }
+            }
+            Divider()
+            Button("Export this pocket…") { model.archivePresentation = ArchivePresentation(mode: .export(all: false)) }
+            Button("Export all pockets…") { model.archivePresentation = ArchivePresentation(mode: .export(all: true)) }
+            Button("Restore archive…", action: shell.chooseArchiveToRestore)
+            Button("Clean unused files…") { model.archivePresentation = ArchivePresentation(mode: .cleanup) }
+            Divider()
+            Button("Delete pocket…", role: .destructive) { deletingPocket = true }
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "folder.fill").font(.system(size: 10.5)).foregroundStyle(ShelfStyle.secondary)
@@ -169,7 +230,8 @@ struct PanelRootView: View {
         .onHover { pocketHovered = $0 }
         .animation(reduceMotion ? nil : ShelfStyle.feedback, value: pocketHovered)
         .shelfPointer()
-        .help(kit.pocketName)
+        .disabled(!kit.isLoaded || kit.isImporting || kit.isSwitching || kit.isArchiveBusy)
+        .help(kit.isImporting ? "Finish importing before switching pockets" : kit.pocketName)
         .accessibilityLabel("Pocket: \(kit.pocketName)")
     }
 
@@ -177,9 +239,18 @@ struct PanelRootView: View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").font(.system(size: 12.5, weight: .medium)).foregroundStyle(ShelfStyle.secondary)
                 .accessibilityHidden(true)
-            TextField("Search \(model.tool.title.lowercased())…", text: $model.query)
+            TextField(model.searchScope == .all ? "Search all pockets…" : "Search this pocket…", text: $model.query)
                 .textFieldStyle(.plain).font(.system(size: 13.5)).focused($searchFocused)
-                .accessibilityLabel("Search \(model.tool.title.lowercased()) in \(kit.pocketName)")
+                .accessibilityLabel(model.searchScope == .all ? "Search all pockets" : "Search in \(kit.pocketName)")
+            Menu {
+                Picker("Search scope", selection: $model.searchScope) {
+                    ForEach(PocketSearchScope.allCases) { scope in Text(scope.rawValue).tag(scope) }
+                }
+            } label: {
+                Text(model.searchScope == .all ? "All pockets" : "This pocket").font(ShelfStyle.caption).fixedSize()
+            }
+            .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden)
+            .accessibilityLabel("Search scope: \(model.searchScope.rawValue)").shelfPointer()
             if !model.query.isEmpty {
                 Button { model.query = "" } label: { Image(systemName: "xmark.circle.fill") }
                     .buttonStyle(.borderless).foregroundStyle(ShelfStyle.secondary).accessibilityLabel("Clear search")
@@ -212,6 +283,12 @@ struct PanelRootView: View {
                         .buttonStyle(ShelfButtonStyle(filled: true, compact: true))
                 }
                 .font(ShelfStyle.caption).padding(.horizontal, 16).padding(.vertical, 12)
+            } else if let notice = kit.maintenanceNotice {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(notice).fixedSize(horizontal: false, vertical: true)
+                    Button("Review") { model.archivePresentation = ArchivePresentation(mode: .cleanup) }
+                }
+                .font(ShelfStyle.caption).padding(12)
             } else if model.tool == .notes, let message = model.feedback {
                 // Feedback participates in layout so it cannot cover task input.
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -224,6 +301,19 @@ struct PanelRootView: View {
                 }
                 .font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary)
                 .padding(.horizontal, 18).padding(.vertical, 8)
+            } else if !model.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                HStack(spacing: 8) {
+                    Text("↑↓ Select").font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary)
+                    Spacer(minLength: 4)
+                    let results = kit.search(model.query, scope: model.searchScope)
+                    if let result = results.first(where: { $0.id == model.selection }) ?? results.first {
+                        Button { Task { await model.openSearchResult(result, kit: kit) } } label: {
+                            HStack(spacing: 7) { Text("Open").fixedSize(); Keycap("↵") }
+                        }
+                        .buttonStyle(ShelfButtonStyle(compact: true)).accessibilityLabel("Open selected search result")
+                    }
+                }
+                .padding(.horizontal, 18).frame(height: 40)
             } else {
                 ViewThatFits(in: .horizontal) {
                     footerBar(showsStatus: true, showsPrimary: true)
@@ -473,31 +563,42 @@ private struct ActionsPanel: View {
                 Keycap("esc")
             }
             .padding(.horizontal, 8).padding(.top, 4).padding(.bottom, 5)
-            ForEach(Array(commands.enumerated()), id: \.element.id) { index, command in
-                if command.destructive {
-                    Rectangle().fill(ShelfStyle.hairline).frame(height: 1).padding(.vertical, 4)
-                }
-                Button {
-                    model.actionsOpen = false
-                    command.perform()
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: command.symbol).font(.system(size: 12, weight: .medium)).frame(width: 16)
-                        Text(command.title).lineLimit(1)
-                        Spacer(minLength: 12)
-                        if !command.keys.isEmpty { Keycap(keys: command.keys) }
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 1) {
+                        ForEach(Array(commands.enumerated()), id: \.element.id) { index, command in
+                            if command.destructive {
+                                Rectangle().fill(ShelfStyle.hairline).frame(height: 1).padding(.vertical, 4)
+                            }
+                            Button {
+                                model.actionsOpen = false
+                                command.perform()
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: command.symbol).font(.system(size: 12, weight: .medium)).frame(width: 16)
+                                    Text(command.title).lineLimit(1)
+                                    Spacer(minLength: 12)
+                                    if !command.keys.isEmpty { Keycap(keys: command.keys) }
+                                }
+                                .foregroundStyle(command.destructive ? AnyShapeStyle(Color.red) : AnyShapeStyle(ShelfStyle.ink))
+                                .opacity(command.enabled ? 1 : 0.45)
+                                .padding(.horizontal, 8).frame(height: 30)
+                                .background(index == model.actionIndex && command.enabled ? ShelfStyle.keycap : .clear,
+                                            in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(!command.enabled)
+                            .onHover { if $0 { model.actionIndex = index } }
+                            .shelfPointer(command.enabled ? .pointingHand : .arrow)
+                            .id(command.id)
+                        }
                     }
-                    .foregroundStyle(command.destructive ? AnyShapeStyle(Color.red) : AnyShapeStyle(ShelfStyle.ink))
-                    .opacity(command.enabled ? 1 : 0.45)
-                    .padding(.horizontal, 8).frame(height: 30)
-                    .background(index == model.actionIndex && command.enabled ? ShelfStyle.keycap : .clear,
-                                in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .disabled(!command.enabled)
-                .onHover { if $0 { model.actionIndex = index } }
-                .shelfPointer(command.enabled ? .pointingHand : .arrow)
+                .frame(maxHeight: 240)
+                .onChange(of: model.actionIndex) {
+                    if commands.indices.contains(model.actionIndex) { proxy.scrollTo(commands[model.actionIndex].id) }
+                }
             }
         }
         .padding(6)

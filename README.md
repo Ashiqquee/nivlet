@@ -4,7 +4,7 @@ A native Mac edge panel that keeps reusable prompts (with optional fill-in blank
 
 Click a small screen-edge tab, open your local pocket, then explicitly copy text or drag a reference file into your working application.
 
-**Status:** Native development build with a full-height edge shelf and one persistent local pocket. Phases 2–3 pass their local gates: saved plain/fill-in prompts, ordering/deletion Undo, scratchpad autosave, failed-save recovery and original-file references with paste, per-file retry, bounded previews and a tested Finder fallback. Build and tests pass (78 tests, 135 cases). See the [Phase 3 evidence](docs/implementation/phase3-vertical-slice.md), [Phase 2 evidence](docs/implementation/phase2-persistence.md) and [launcher-style redesign](docs/implementation/ui-redesign.md). Multiple pockets and remaining release/acceptance checks are incomplete. The owner selected Nivlet on 27 October 2026.
+**Status:** Native development build with a full-height edge shelf and persistent project pockets. Phases 2–5 pass their local gates: durable prompts/scratchpads, named blanks, original-file references, scoped search, pocket recovery, portable export/import-as-new restore and safe retention. Build and tests pass (113 tests, 200 cases). See the [Phase 5 evidence](docs/implementation/phase5-recovery.md), [archive format and fixtures](docs/archive-format.md), [Phase 4 evidence](docs/implementation/phase4-pockets.md) and earlier phase records. Licensing and remaining native release checks are incomplete. The owner selected Nivlet on 27 October 2026.
 
 ## First-release scope
 

@@ -1,0 +1,130 @@
+Phase 4 native checks — 29 October 2026
+macOS 26.6.2 (25G83), Apple M3 arm64; Xcode 27.1 / macOS 27 SDK
+Bundle: ashique.nivlet.phase4acceptance; synthetic phase4-final library
+Private pasteboard: nivlet-verification-phase4; general clipboard untouched
+
+PASS active-pocket search excluded the Website Review prompt
+PASS all-pocket search showed distinct Website/Writing Review labels and body excerpts
+PASS choosing Website result switched ownership context and opened Website body
+
+MOVE
+PASS Find Preview Layout reference
+PASS Press Preview Layout reference
+PASS Find text field Reference label
+PASS Focus Reference label
+PASS Native text matches Reference label
+PASS Find text field Reference note
+PASS Focus Reference note
+PASS Native text matches Reference note
+PASS Find Actions for selected item
+PASS Press Actions for selected item
+PASS Find Duplicate
+PASS Press Duplicate
+PASS Reference duplication creates an independent tile
+PASS Find Actions for selected item
+PASS Press Actions for selected item
+PASS Find Move to pocket…
+PASS Press Move to pocket…
+PASS Find Move to Writing
+PASS Press Move to Writing
+PASS Moved reference leaves Website
+PASS Independent duplicate remains in Website
+PASS Find menu Pocket: Website
+PASS Find Writing
+PASS Press Writing
+PASS Find References
+PASS Press References
+PASS Find Preview Layout reference
+PASS Press Preview Layout reference
+PASS Destination reference retains its own note
+PASS Find text field Reference note
+PASS Focus Reference note
+PASS Native text matches Reference note
+PASS Find menu Pocket: Writing
+PASS Find Website
+PASS Press Website
+PASS Find References
+PASS Press References
+PASS Find Preview Layout reference copy
+PASS Press Preview Layout reference copy
+PASS Moving and editing the destination leaves duplicate metadata independent
+
+TRASH
+PASS Find menu Pocket: Website
+PASS Find Delete pocket…
+PASS Press Delete pocket…
+PASS Find Cancel
+PASS Press Cancel
+PASS Cancel pocket deletion retains the active kit
+PASS Find menu Pocket: Website
+PASS Find Delete pocket…
+PASS Press Delete pocket…
+PASS Find Delete pocket
+PASS Press Delete pocket
+PASS Confirmed deletion safely selects another pocket
+
+QUIT
+PASS Request normal native termination
+PASS Native quit flushed the isolated review library
+
+RESTART
+PASS Native relaunch restores the last live pocket
+PASS Native relaunch restores the reference tool and moved item
+PASS Website duplicate remains outside Writing
+
+RESTORE
+PASS Find menu Pocket: Writing
+PASS Find Deleted pockets
+PASS Press Deleted pockets
+PASS Find Restore Website
+PASS Press Restore Website
+PASS Find menu Pocket: Writing
+PASS Find Website
+PASS Press Website
+PASS Find References
+PASS Press References
+PASS Find Preview Layout reference copy
+PASS Press Preview Layout reference copy
+PASS Restored pocket retains reference metadata after native relaunch
+PASS Restored original previews correctly after source removal
+PASS Find Scratchpad
+PASS Press Scratchpad
+PASS Restored pocket retains its independent scratchpad
+
+UNDO
+PASS Find Open Nivlet
+PASS Press Open Nivlet
+PASS Find References
+PASS Press References
+PASS Find Actions for selected item
+PASS Press Actions for selected item
+PASS Find Delete
+PASS Press Delete
+PASS Native item Delete removes the active reference
+PASS Find Undo delete
+PASS Press Undo delete
+PASS Native item Undo restores the reference after source removal
+
+NARROW
+PASS Find Prompts
+PASS Press Prompts
+PASS Find text field Search in Website
+PASS Focus Search in Website
+PASS Native text matches Search in Website
+PASS Find menu Search scope: This pocket
+PASS Find All pockets
+PASS Press All pockets
+PASS Minimum-width all-pocket search retains distinct results
+
+KEYBOARD
+PASS Find text field Search all pockets
+PASS Focus Search all pockets
+PASS Native text matches Search all pockets
+PASS Native Down and Return open the intended search result
+PASS Keyboard result keeps its explicit pocket ownership
+
+PASS SQLite ownership and SHA-256: two independent references share one unchanged original
+PASS source fixture removed before relaunch/restore; static original preview still correct
+PASS 320 × 360 screenshot inspected: explicit search scope, two distinct results and Open/Return footer
+
+Not verified: full VoiceOver/Full Keyboard Access, OS 14/27 runtime, Intel, display/Spaces matrix, external drops, physical power loss and large-library performance.

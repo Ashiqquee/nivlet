@@ -3,11 +3,36 @@ import Observation
 
 @Observable
 final class PocketLibrary {
-    private(set) var pocketID = UUID()
-    private(set) var pocketName = "My pocket"
-    private(set) var prompts: [SavedPrompt] = []
-    private(set) var references: [ReferenceItem] = []
-    var note = "" { didSet { if isLoaded, note != oldValue { changed(debounce: true) } } }
+    private(set) var collection = PocketCollection(pocket: .empty)
+    private var activeIndex: Int { collection.pockets.firstIndex { $0.pocketID == collection.activePocketID }! }
+    var pockets: [LibrarySnapshot] { collection.pockets }
+    var pocketID: UUID { collection.activePocketID }
+    private(set) var pocketName: String {
+        get { collection.pockets[activeIndex].pocketName }
+        set { collection.pockets[activeIndex].pocketName = newValue }
+    }
+    private(set) var prompts: [SavedPrompt] {
+        get { collection.pockets[activeIndex].prompts }
+        set { collection.pockets[activeIndex].prompts = newValue }
+    }
+    private(set) var references: [ReferenceItem] {
+        get { collection.pockets[activeIndex].references }
+        set { collection.pockets[activeIndex].references = newValue }
+    }
+    var note: String {
+        get { collection.pockets[activeIndex].note }
+        set {
+            guard note != newValue else { return }
+            collection.pockets[activeIndex].note = newValue
+            if isLoaded { changed(debounce: true) }
+        }
+    }
+    private(set) var isSwitching = false
+    private(set) var archivePreview: ArchivePreview?
+    private(set) var archiveError: String?
+    private(set) var archiveMessage: String?
+    private(set) var isArchiveBusy = false
+    private(set) var maintenanceNotice: String?
     private(set) var isLoaded = false
     private(set) var isImporting = false
     private(set) var importResults: [ReferenceImportResult] = []
@@ -31,10 +56,10 @@ final class PocketLibrary {
         case prompt(SavedPrompt, Int)
         case reference(ReferenceItem, Int)
     }
-    private var deletedRecords: [DeletedRecord] = []
+    private var deletedRecords: [(owner: UUID, record: DeletedRecord)] = []
 
     var hasUnsavedChanges: Bool { isLoaded && !isPreview && revision > savedRevision }
-    var canUndoDelete: Bool { !deletedRecords.isEmpty }
+    var canUndoDelete: Bool { deletedRecords.contains { $0.owner == pocketID } }
 
     init(root: URL? = nil, preview: Bool = false, store: LibraryStore? = nil) {
         let root = root ?? URL.applicationSupportDirectory.appending(path: "ashique.nivlet.Nivlet", directoryHint: .isDirectory)
@@ -60,16 +85,16 @@ final class PocketLibrary {
         isLoading = true; saveState = .loading
         defer { isLoading = false }
         do {
-            let value = try await store.load()
-            apply(value)
-            if let recovered = try await store.recoverableSnapshot() {
-                guard recovered.pocketID == pocketID else { throw LibraryStoreError.database("recovery pocket mismatch") }
-                apply(recovered)
+            collection = try await store.loadCollection()
+            if let recovered = try await store.recoverableCollection() {
+                collection = recovered
                 revision = 1
                 needsRecoveryReview = true
                 saveState = .failed("Recovered unsaved changes. Review them, then retry saving.")
             } else { saveState = .saved }
             isLoaded = true
+            do { try await store.reconcileInterruptedArchives() }
+            catch { maintenanceNotice = "An interrupted file operation needs review. Your library is available; unused-file cleanup is paused." }
         } catch { saveState = .failed(error.localizedDescription) }
     }
 
@@ -85,16 +110,22 @@ final class PocketLibrary {
     }
 
     func toggleFavorite(id: UUID, tool: PanelTool) {
-        guard isLoaded, tool == .prompts, let i = prompts.firstIndex(where: { $0.id == id }) else { return }
-        prompts[i].isFavorite.toggle()
+        guard isLoaded else { return }
+        if tool == .prompts, let i = prompts.firstIndex(where: { $0.id == id }) { prompts[i].isFavorite.toggle() }
+        else if tool == .references, let i = references.firstIndex(where: { $0.id == id }) { references[i].isFavorite.toggle() }
+        else { return }
         changed(debounce: true)
     }
 
     func duplicate(id: UUID, tool: PanelTool) {
-        guard isLoaded, tool == .prompts, let index = prompts.firstIndex(where: { $0.id == id }) else { return }
-        let original = prompts[index]
-        prompts.insert(SavedPrompt(label: original.label + " copy", source: original.source,
-                                   isFavorite: original.isFavorite, usesFields: original.usesFields), at: index + 1)
+        guard isLoaded else { return }
+        if tool == .prompts, let index = prompts.firstIndex(where: { $0.id == id }) {
+            let original = prompts[index]
+            prompts.insert(SavedPrompt(label: original.label + " copy", source: original.source,
+                                       isFavorite: original.isFavorite, usesFields: original.usesFields), at: index + 1)
+        } else if tool == .references, let index = references.firstIndex(where: { $0.id == id }) {
+            references.insert(copyReference(references[index]), at: index + 1)
+        } else { return }
         changed(debounce: true)
     }
 
@@ -121,11 +152,11 @@ final class PocketLibrary {
         switch tool {
         case .prompts:
             if let index = prompts.firstIndex(where: { $0.id == id }) {
-                deletedRecords.append(.prompt(prompts.remove(at: index), index))
+                deletedRecords.append((pocketID, .prompt(prompts.remove(at: index), index)))
             }
         case .references:
             if let index = references.firstIndex(where: { $0.id == id }) {
-                deletedRecords.append(.reference(references.remove(at: index), index))
+                deletedRecords.append((pocketID, .reference(references.remove(at: index), index)))
             }
         case .notes: return
         }
@@ -133,7 +164,8 @@ final class PocketLibrary {
     }
 
     func undoDelete() {
-        guard let previous = deletedRecords.popLast() else { return }
+        guard let index = deletedRecords.lastIndex(where: { $0.owner == pocketID }) else { return }
+        let previous = deletedRecords.remove(at: index).record
         // Restore only this deletion, preserving unrelated edits and earlier Undo steps.
         switch previous {
         case .prompt(let item, let position):
@@ -185,7 +217,7 @@ final class PocketLibrary {
 
     @discardableResult
     func importSources(_ sources: [ReferenceImportSource]) async -> [String] {
-        guard isLoaded, !isPreview, !isImporting else { return [] }
+        guard isLoaded, !isPreview, !isImporting, !isSwitching else { return [] }
         let ids = sources.map { source in
             let id = UUID()
             retrySources[id] = source
@@ -197,7 +229,7 @@ final class PocketLibrary {
 
     @discardableResult
     func retryImports(_ ids: [UUID], confirmed: Bool = false) async -> [String] {
-        guard isLoaded, !isPreview, !isImporting else { return [] }
+        guard isLoaded, !isPreview, !isImporting, !isSwitching else { return [] }
         return await processImports(ids.filter { retrySources[$0] != nil }, confirmed: confirmed)
     }
 
@@ -257,10 +289,10 @@ final class PocketLibrary {
         guard !needsRecoveryReview else { return false }
         guard hasUnsavedChanges else { return true }
         let currentRevision = revision
-        let current = snapshot
+        let current = collection
         saveState = .saving
         do {
-            let committed = try await store.save(current, revision: currentRevision)
+            let committed = try await store.saveCollection(current, revision: currentRevision)
             if committed {
                 savedRevision = max(savedRevision, currentRevision)
                 for index in importResults.indices {
@@ -305,14 +337,229 @@ final class PocketLibrary {
         }
     }
 
-    private var snapshot: LibrarySnapshot {
-        LibrarySnapshot(pocketID: pocketID, pocketName: pocketName,
-                        prompts: prompts, references: references, note: note)
+    var assetReferenceCounts: [URL: Int] {
+        var counts = collection.assetReferenceCounts
+        for deletion in deletedRecords {
+            if case .reference(let item, _) = deletion.record { counts[item.originalURL, default: 0] += 1 }
+        }
+        return counts
     }
 
-    private func apply(_ value: LibrarySnapshot) {
-        pocketID = value.pocketID; pocketName = value.pocketName
-        prompts = value.prompts
-        references = value.references; note = value.note
+    var currentView: PocketViewBookmark? { collection.pockets[activeIndex].view }
+
+    func updateView(_ view: PocketViewBookmark) {
+        guard isLoaded, !isSwitching, currentView != view else { return }
+        collection.pockets[activeIndex].view = view
+        changed(debounce: true)
     }
+
+    func search(_ query: String, scope: PocketSearchScope) -> [PocketSearchResult] { collection.search(query, scope: scope) }
+
+    @discardableResult
+    func createPocket(_ name: String) -> UUID? {
+        guard isLoaded, !isSwitching, PromptTemplate.isFilled(name) else { return nil }
+        var pocket = LibrarySnapshot.empty; pocket.pocketName = name
+        collection.pockets.append(pocket)
+        changed(debounce: true)
+        return pocket.pocketID
+    }
+
+    @discardableResult
+    func switchPocket(to id: UUID) async -> Bool {
+        guard isLoaded, !isSwitching, !isImporting,
+              pockets.contains(where: { $0.pocketID == id }) else { return false }
+        if id == pocketID { return true }
+        isSwitching = true
+        defer { isSwitching = false }
+        // A failed/recovered save keeps the current pocket visible for review.
+        guard await flush() else { return false }
+        collection.activePocketID = id
+        dismissImportResults()
+        changed()
+        _ = await flush()
+        return true
+    }
+
+    func reorderPocket(id: UUID, by offset: Int) {
+        guard !isSwitching, let index = pockets.firstIndex(where: { $0.pocketID == id }),
+              abs(offset) == 1, pockets.indices.contains(index + offset) else { return }
+        collection.pockets.swapAt(index, index + offset)
+        changed(debounce: true)
+    }
+
+    func canReorderPocket(id: UUID, by offset: Int) -> Bool {
+        guard let index = pockets.firstIndex(where: { $0.pocketID == id }), abs(offset) == 1 else { return false }
+        return pockets.indices.contains(index + offset)
+    }
+
+    @discardableResult
+    func duplicatePocket() -> UUID? {
+        guard isLoaded, !isSwitching, !isImporting else { return nil }
+        let original = collection.pockets[activeIndex]
+        let copy = LibrarySnapshot(pocketID: UUID(), pocketName: original.pocketName + " copy",
+            prompts: original.prompts.map { SavedPrompt(label: $0.label, source: $0.source, isFavorite: $0.isFavorite, usesFields: $0.usesFields) },
+            references: original.references.map { copyReference($0, suffix: "") }, note: original.note)
+        collection.pockets.insert(copy, at: activeIndex + 1)
+        changed(debounce: true)
+        return copy.pocketID
+    }
+
+    /// Caller presents a confirmation before invoking this operation.
+    @discardableResult
+    func deletePocket(now: Date = Date()) async -> Bool {
+        guard isLoaded, !isImporting, !isSwitching else { return false }
+        isSwitching = true
+        defer { isSwitching = false }
+        guard await flush() else { return false }
+        let position = activeIndex
+        let removed = collection.pockets.remove(at: position)
+        collection.trash.append(TrashedPocket(pocket: removed, deletedAt: now))
+        if pockets.isEmpty { collection.pockets.append(.empty) }
+        collection.activePocketID = pockets[min(position, pockets.count - 1)].pocketID
+        dismissImportResults()
+        changed()
+        _ = await flush()
+        return true
+    }
+
+    func recoverablePockets(at now: Date = Date()) -> [TrashedPocket] {
+        collection.trash.filter { $0.canRestore(at: now) }
+    }
+
+    @discardableResult
+    func restorePocket(id: UUID, now: Date = Date()) -> Bool {
+        guard !isSwitching, let index = collection.trash.firstIndex(where: { $0.id == id }),
+              collection.trash[index].canRestore(at: now) else { return false }
+        collection.pockets.append(collection.trash.remove(at: index).pocket)
+        changed(debounce: true)
+        return true
+    }
+
+    @discardableResult
+    func moveItem(id: UUID, tool: PanelTool, to destination: UUID) -> Bool {
+        guard isLoaded, !isImporting, !isSwitching, destination != pocketID,
+              let target = pockets.firstIndex(where: { $0.pocketID == destination }) else { return false }
+        switch tool {
+        case .prompts:
+            guard let index = prompts.firstIndex(where: { $0.id == id }) else { return false }
+            let item = prompts.remove(at: index)
+            collection.pockets[target].prompts.append(item)
+        case .references:
+            guard let index = references.firstIndex(where: { $0.id == id }) else { return false }
+            let item = references.remove(at: index)
+            collection.pockets[target].references.append(item)
+        case .notes: return false
+        }
+        changed(debounce: true)
+        return true
+    }
+
+    func canMoveReference(id: UUID, by offset: Int) -> Bool {
+        guard let item = references.first(where: { $0.id == id }), abs(offset) == 1 else { return false }
+        let group = references.filter { $0.isFavorite == item.isFavorite }
+        guard let index = group.firstIndex(where: { $0.id == id }) else { return false }
+        return group.indices.contains(index + offset)
+    }
+
+    func moveReference(id: UUID, by offset: Int) {
+        guard canMoveReference(id: id, by: offset), let index = references.firstIndex(where: { $0.id == id }) else { return }
+        let group = references.indices.filter { references[$0].isFavorite == references[index].isFavorite }
+        guard let position = group.firstIndex(of: index) else { return }
+        references.swapAt(index, group[position + offset])
+        changed(debounce: true)
+    }
+
+    private func copyReference(_ item: ReferenceItem, suffix: String = " copy") -> ReferenceItem {
+        ReferenceItem(id: UUID(), label: item.label + suffix, note: item.note, displayName: item.displayName,
+                      originalURL: item.originalURL, isImage: item.isImage, byteCount: item.byteCount, isFavorite: item.isFavorite)
+    }
+
+    func prepareArchiveExport(all: Bool) async {
+        guard isLoaded, !isPreview, !isImporting, !isSwitching, !isArchiveBusy else { return }
+        isArchiveBusy = true; archiveError = nil; archiveMessage = nil
+        defer { isArchiveBusy = false }
+        guard await flush() else { archiveError = "Save or recover your current changes before exporting."; return }
+        do {
+            archivePreview = try await store.prepareExport(all ? pockets : [collection.pockets[activeIndex]])
+        } catch { archiveError = archiveFailureMessage(error) }
+    }
+
+    func prepareArchiveRestore(from url: URL) async {
+        guard isLoaded, !isPreview, !isImporting, !isSwitching, !isArchiveBusy else { return }
+        isArchiveBusy = true; archiveError = nil; archiveMessage = nil
+        defer { isArchiveBusy = false }
+        do { archivePreview = try await store.prepareRestore(from: url) }
+        catch { archiveError = archiveFailureMessage(error) }
+    }
+
+    @discardableResult
+    func writeArchive(to destination: URL) async -> Bool {
+        guard let preview = archivePreview, !isArchiveBusy else { return false }
+        isArchiveBusy = true; archiveError = nil
+        defer { isArchiveBusy = false }
+        do {
+            try await store.exportArchive(preview.id, to: destination)
+            try? await store.closeArchive(preview.id)
+            archivePreview = nil; archiveMessage = "Archive saved."
+            return true
+        } catch { archiveError = archiveFailureMessage(error); return false }
+    }
+
+    @discardableResult
+    func restoreArchive() async -> Bool {
+        guard let preview = archivePreview, !isArchiveBusy, !isImporting, !isSwitching else { return false }
+        isArchiveBusy = true; archiveError = nil
+        defer { isArchiveBusy = false; isSwitching = false }
+        guard await flush() else { archiveError = "Save or recover your current changes before restoring."; return false }
+        isSwitching = true
+        do {
+            let restored = try await store.commitRestore(preview.id, revision: revision + 1)
+            collection = restored; revision += 1; savedRevision = revision; saveState = .saved
+            archivePreview = nil; archiveMessage = "Restored as new pockets."
+            return true
+        } catch { archiveError = archiveFailureMessage(error); return false }
+    }
+
+    func dismissArchive() async {
+        guard !isArchiveBusy else { return }
+        if let preview = archivePreview { try? await store.closeArchive(preview.id) }
+        archivePreview = nil; archiveError = nil; archiveMessage = nil
+    }
+
+    func cleanUnusedFiles(now: Date = .now) async {
+        guard isLoaded, !isPreview, !isImporting, !isSwitching, !isArchiveBusy else { return }
+        isArchiveBusy = true; archiveError = nil; archiveMessage = nil
+        defer { isArchiveBusy = false }
+        guard await flush() else { archiveError = "Save or recover your changes before cleaning unused files."; return }
+        // Expired trash loses metadata first. The last-good/pending revisions and
+        // migration backups still participate in the graph before any unlink.
+        let expired = collection.trash.filter { !$0.canRestore(at: now) }
+        if !expired.isEmpty {
+            collection.trash.removeAll { !$0.canRestore(at: now) }
+            changed()
+            guard await flush() else { archiveError = "Couldn't save expired-pocket cleanup. No files were removed."; return }
+        }
+        var retained = Set<URL>()
+        for record in deletedRecords {
+            if case .reference(let reference, _) = record.record { retained.insert(reference.originalURL) }
+        }
+        do {
+            let result = try await store.cleanupAssets(retaining: retained, now: now)
+            archiveMessage = "Removed \(result.removedAssets) unused original files and \(result.removedStagingFolders) interrupted imports."
+            maintenanceNotice = nil
+        } catch {
+            archiveError = error is CancellationError
+                ? "Cleanup stopped. Files already removed were unused."
+                : "Couldn't finish cleanup. Retained files stay protected. Check access and recovery records, then try again."
+        }
+    }
+
+    private func archiveFailureMessage(_ error: any Error) -> String {
+        if error is CancellationError { return "Cancelled. Your working library hasn't changed." }
+        if let error = error as? PocketArchiveError { return error.localizedDescription }
+        if let error = error as? LibraryStoreError { return error.localizedDescription }
+        if (error as NSError).code == NSFileWriteOutOfSpaceError { return PocketArchiveError.noSpace.localizedDescription }
+        return "Couldn't complete this file operation. Check access and free space, then try again."
+    }
+
 }

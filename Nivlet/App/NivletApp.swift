@@ -74,14 +74,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        if shell.panelModel.draft?.hasChanges == true {
+        if shell.kit.isArchiveBusy {
             let alert = NSAlert()
-            alert.messageText = "You have an unsaved draft"
-            alert.informativeText = "Keep editing to save it, or discard the draft before quitting."
+            alert.messageText = "A file operation is in progress"
+            alert.informativeText = "Finish it, or cancel from its preview, before quitting."
+            alert.addButton(withTitle: "Keep Nivlet open")
+            alert.runModal()
+            return .terminateCancel
+        }
+        shell.kit.updateView(shell.panelModel.bookmark)
+        if shell.panelModel.hasUnsubmittedDrafts {
+            let alert = NSAlert()
+            alert.messageText = "You have unsaved prompt drafts"
+            alert.informativeText = "Keep editing to save drafts in your pockets, or discard the drafts before quitting."
             alert.addButton(withTitle: "Keep editing")
             alert.addButton(withTitle: "Discard and quit")
             guard alert.runModal() == .alertSecondButtonReturn else { return .terminateCancel }
-            shell.panelModel.discardDraft()
+            shell.panelModel.discardAllDrafts()
         }
         guard shell.kit.hasUnsavedChanges else { return .terminateNow }
         Task {

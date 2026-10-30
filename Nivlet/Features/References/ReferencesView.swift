@@ -43,6 +43,7 @@ struct ReferencesView: View {
                         }
                         .padding(.horizontal, 12).padding(.bottom, 14)
                     }
+                    .onAppear { if let id = model.selection { proxy.scrollTo(id) } }
                     .onChange(of: model.revealRequest) {
                         guard let id = model.revealRequest else { return }
                         proxy.scrollTo(id)
@@ -116,7 +117,10 @@ private struct ReferenceTile: View {
             .accessibilityAddTraits(selected ? .isSelected : [])
             .help("Open preview, or drag a copy of the original file")
             VStack(alignment: .leading, spacing: 1) {
-                Text(reference.label).font(.system(size: 12.5, weight: .semibold)).lineLimit(1).help(reference.label)
+                HStack(spacing: 4) {
+                    Text(reference.label).font(.system(size: 12.5, weight: .semibold)).lineLimit(1).help(reference.label)
+                    if reference.isFavorite { Image(systemName: "star.fill").font(.system(size: 9)).foregroundStyle(ShelfStyle.favourite).accessibilityLabel("Favourite") }
+                }
                 Text(reference.displayName).font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary).lineLimit(1)
                     .help(reference.displayName)
                 if kit.referenceIsPending(reference.id) {

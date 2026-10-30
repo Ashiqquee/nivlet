@@ -60,8 +60,8 @@ enum ShelfIndex {
     }
 
     static func references(kit: PocketLibrary, query: String) -> [ReferenceItem] {
-        guard !query.isEmpty else { return kit.references }
-        return kit.references.filter { $0.label.localizedStandardContains(query) || $0.note.localizedStandardContains(query) }
+        let filtered = query.isEmpty ? kit.references : kit.references.filter { $0.label.localizedStandardContains(query) || $0.note.localizedStandardContains(query) }
+        return filtered.filter(\.isFavorite) + filtered.filter { !$0.isFavorite }
     }
 
     /// IDs in visual order: favourites first, then the rest.
@@ -104,6 +104,11 @@ extension PanelModel {
                     guard let self else { return }
                     ReferenceActions.reveal(reference, model: self)
                 },
+                ShelfCommand(id: "favorite", title: reference.isFavorite ? "Remove favourite" : "Add favourite", symbol: "star", keys: ["⇧", "⌘", "F"]) { kit.toggleFavorite(id: reference.id, tool: .references) },
+                ShelfCommand(id: "duplicate", title: "Duplicate", symbol: "plus.square.on.square", keys: ["⌘", "D"]) { kit.duplicate(id: reference.id, tool: .references) },
+                ShelfCommand(id: "move-up", title: "Move up", symbol: "arrow.up", enabled: kit.canMoveReference(id: reference.id, by: -1)) { kit.moveReference(id: reference.id, by: -1) },
+                ShelfCommand(id: "move-down", title: "Move down", symbol: "arrow.down", enabled: kit.canMoveReference(id: reference.id, by: 1)) { kit.moveReference(id: reference.id, by: 1) },
+                ShelfCommand(id: "move-pocket", title: "Move to pocket…", symbol: "folder", enabled: kit.pockets.count > 1 && !kit.isImporting) { [weak self] in self?.moveRequest = PocketMoveRequest(id: reference.id, tool: .references) },
                 ShelfCommand(id: "delete", title: "Delete", symbol: "trash", keys: ["⌘", "⌫"], destructive: true) { kit.delete(id: reference.id, tool: .references) },
             ]
         case .notes: return []
@@ -128,6 +133,7 @@ extension PanelModel {
                          enabled: kit.canMovePrompt(id: item.id, by: -1)) { kit.movePrompt(id: item.id, by: -1) },
             ShelfCommand(id: "move-down", title: "Move down", symbol: "arrow.down",
                          enabled: kit.canMovePrompt(id: item.id, by: 1)) { kit.movePrompt(id: item.id, by: 1) },
+            ShelfCommand(id: "move-pocket", title: "Move to pocket…", symbol: "folder", enabled: kit.pockets.count > 1 && !kit.isImporting) { [weak self] in self?.moveRequest = PocketMoveRequest(id: item.id, tool: item.tool) },
             ShelfCommand(id: "delete", title: "Delete", symbol: "trash", keys: ["⌘", "⌫"], destructive: true) { kit.delete(id: item.id, tool: item.tool) },
         ]
     }
@@ -151,7 +157,9 @@ extension PanelModel {
 
     /// Returns `true` when the key was used, so the panel stops propagating it.
     func handle(_ key: ShelfKey, kit: PocketLibrary) -> Bool {
-        guard kit.isLoaded, inspector == nil, tool != .notes else { return false }
+        guard kit.isLoaded, !kit.isSwitching, archivePresentation == nil, moveRequest == nil, inspector == nil else { return false }
+        if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return handleSearch(key, kit: kit) }
+        guard tool != .notes else { return false }
         if actionsOpen, let target = resolvedSelection(kit) {
             let commands = commands(for: target, kit: kit)
             switch key {

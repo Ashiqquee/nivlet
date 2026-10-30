@@ -12,12 +12,15 @@ nonisolated struct SavedPrompt: Identifiable, Equatable, Sendable, Codable {
     }
 }
 
-nonisolated struct LibrarySnapshot: Equatable, Sendable, Codable {
+nonisolated struct LibrarySnapshot: Identifiable, Equatable, Sendable, Codable {
     var pocketID: UUID
     var pocketName: String
     var prompts: [SavedPrompt]
     var references: [ReferenceItem]
     var note: String
+
+    var view: PocketViewBookmark? = nil
+    var id: UUID { pocketID }
 
     static var empty: LibrarySnapshot { LibrarySnapshot(pocketID: UUID(), pocketName: "My pocket", prompts: [], references: [], note: "") }
 }

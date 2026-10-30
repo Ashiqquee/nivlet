@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nivlet — folded shelf identity</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #eeefef; color: #17191c; font: 16px/1.5 system-ui, sans-serif; }
+  main { max-width: 1040px; margin: auto; padding: 48px 24px; }
+  h1 { font-size: 28px; margin: 0; letter-spacing: -.04em; }
+  p { color: #555b63; margin: 8px 0 32px; }
+  figure { margin: 0 0 24px; border-radius: 16px; overflow: hidden; background: white; }
+  .logo { display: block; width: 100%; height: auto; }
+  figcaption { padding: 16px 24px; font-size: 13px; border-top: 1px solid #e5e7eb; }
+  .dark { background: #17191c; color: white; }
+  .dark figcaption { border-color: #36393e; }
+  .sizes { display: flex; gap: 32px; align-items: center; padding: 32px; flex-wrap: wrap; }
+  .size { display: grid; justify-items: center; gap: 12px; font-size: 12px; }
+  .size img { display: block; }
+  footer { color: #555b63; font-size: 13px; }
+  a { color: inherit; }
+</style>
+<main>
+  <h1>Nivlet · Folded shelf</h1>
+  <p>An N that tucks into itself. Logo and favicon exploration · 30 October 2026</p>
+  <figure>
+    <img class="logo" src="nivlet-logo-dark.png" alt="Nivlet folded N symbol and wordmark in charcoal on white">
+    <figcaption>Primary logo · transparent PNG on a light surface</figcaption>
+  </figure>
+  <figure class="dark">
+    <img class="logo" src="nivlet-logo-on-charcoal.png" alt="Nivlet symbol and wordmark in white on charcoal">
+    <figcaption>Reverse logo · opaque charcoal background</figcaption>
+  </figure>
+  <figure>
+    <div class="sizes">
+      <div class="size"><img src="favicon-16.png" width="16" height="16" alt="Nivlet favicon at 16 pixels"><span>16 px</span></div>
+      <div class="size"><img src="favicon-32.png" width="32" height="32" alt="Nivlet favicon at 32 pixels"><span>32 px</span></div>
+      <div class="size"><img src="favicon-48.png" width="48" height="48" alt="Nivlet favicon at 48 pixels"><span>48 px</span></div>
+      <div class="size"><img src="icon-192.png" width="96" height="96" alt="Nivlet icon at 96 pixels"><span>96 px</span></div>
+      <div class="size"><img src="icon-512.png" width="160" height="160" alt="Nivlet icon at 160 pixels"><span>160 px</span></div>
+    </div>
+    <figcaption>The same favicon artwork at actual CSS sizes</figcaption>
+  </figure>
+  <footer>Generated raster artwork. <a href="README.md">Research, prompts and export notes</a>.</footer>
+</main>
+</html>
