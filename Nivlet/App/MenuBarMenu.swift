@@ -13,31 +13,7 @@ struct MenuBarMenu: View {
 
         Divider()
 
-        Picker("Edge", selection: Binding(get: { shell.preferences.edge }, set: { shell.setEdge($0) })) {
-            ForEach(ScreenEdge.allCases) { edge in
-                Text(edge.title).tag(edge)
-            }
-        }
-        Picker("Display", selection: Binding(get: { shell.preferences.displayID }, set: { shell.setDisplay($0) })) {
-            // Reading the revision rebuilds this list when displays change.
-            let _ = shell.screensRevision
-            Text("Primary Display").tag(UInt32?.none)
-            ForEach(NSScreen.screens, id: \.displayID) { screen in
-                Text(screen.localizedName).tag(screen.displayID)
-            }
-        }
-        Toggle("Show Edge Tab", isOn: Binding(get: { shell.preferences.showsEdgeTab }, set: { shell.setShowsEdgeTab($0) }))
-        Toggle(
-            "Global Shortcut \(GlobalHotKey.displayName)",
-            isOn: Binding(get: { shell.preferences.shortcutEnabled }, set: { shell.setShortcutEnabled($0) })
-        )
-        if let error = shell.shortcutError {
-            Text(error)
-        }
-        Toggle("Full Height", isOn: Binding(get: { shell.preferences.fullHeight }, set: shell.setFullHeight))
-        Button("Reset Panel Size") {
-            shell.resetPanelSize()
-        }
+        PanelSettings(shell: shell)
 
         Divider()
 

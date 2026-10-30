@@ -23,8 +23,8 @@ struct ReferencesView: View {
                 ReferenceInspector(kit: kit, reference: reference, model: model)
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
             } else if kit.references.isEmpty {
-                ShelfEmptyState(symbol: PanelTool.references.symbol, title: "A shelf for your references",
-                    detail: "Drop files here, or use Edit ▸ Paste (⌘V) for a copied file or image. Your originals stay untouched.", actionTitle: "Add files",
+                ShelfEmptyState(symbol: PanelTool.references.symbol, title: "Add your first reference",
+                    detail: "Keep original files close. Add, drop or paste a file.", actionTitle: "Add files",
                     tool: .references, showsNewShortcut: true, action: importFiles)
             } else if filtered.isEmpty {
                 ShelfEmptyState(symbol: "magnifyingglass", title: "No matches", detail: "Try a different word or clear your search.", actionTitle: "Clear search") { model.query = "" }
@@ -58,7 +58,7 @@ struct ReferencesView: View {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .strokeBorder(PanelTool.references.tint, style: StrokeStyle(lineWidth: 2, dash: [6, 5]))
                     Label("Drop to add a copy", systemImage: "arrow.down.doc.fill")
-                        .font(ShelfStyle.body.weight(.semibold)).foregroundStyle(PanelTool.references.tint)
+                        .shelfFont(.body, weight: .semibold).foregroundStyle(PanelTool.references.tint)
                 }
                 .padding(8).allowsHitTesting(false)
             }
@@ -95,7 +95,7 @@ private struct ReferenceTile: View {
                 .overlay(shape.strokeBorder(scheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1), lineWidth: 1))
                 .overlay(alignment: .bottomTrailing) {
                     Image(systemName: "arrow.up.left.and.arrow.down.right")
-                        .font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
+                        .shelfFont(size: 10, weight: .bold).foregroundStyle(.white)
                         .frame(width: 24, height: 24)
                         .background(.black.opacity(0.45), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                         .padding(7).opacity(hovered ? 1 : 0)
@@ -118,13 +118,13 @@ private struct ReferenceTile: View {
             .help("Open preview, or drag a copy of the original file")
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 4) {
-                    Text(reference.label).font(.system(size: 12.5, weight: .semibold)).lineLimit(1).help(reference.label)
+                    Text(reference.label).shelfFont(size: 12.5, weight: .semibold).lineLimit(1).help(reference.label)
                     if reference.isFavorite { Image(systemName: "star.fill").font(.system(size: 9)).foregroundStyle(ShelfStyle.favourite).accessibilityLabel("Favourite") }
                 }
-                Text(reference.displayName).font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary).lineLimit(1)
+                Text(reference.displayName).shelfFont(.caption).foregroundStyle(ShelfStyle.secondary).lineLimit(1)
                     .help(reference.displayName)
                 if kit.referenceIsPending(reference.id) {
-                    Label("Not saved", systemImage: "exclamationmark.triangle").font(ShelfStyle.caption).foregroundStyle(.orange)
+                    Label("Not saved", systemImage: "exclamationmark.triangle").shelfFont(.caption).foregroundStyle(.orange)
                 }
             }
             .padding(.horizontal, 4)
@@ -162,11 +162,11 @@ private struct ReferenceInspector: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("Label").font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary)
+                            Text("Label").shelfFont(.caption).foregroundStyle(ShelfStyle.secondary)
                             TextField("Reference label", text: Binding(get: { current.label }, set: { kit.renameReference(id: reference.id, label: $0) }), axis: .vertical)
-                                .textFieldStyle(.plain).font(ShelfStyle.display).focused($labelFocused)
+                                .textFieldStyle(.plain).shelfFont(.display).focused($labelFocused)
                                 .accessibilityLabel("Reference label")
-                            Text(reference.displayName).font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary)
+                            Text(reference.displayName).shelfFont(.caption).foregroundStyle(ShelfStyle.secondary)
                                 .textSelection(.enabled).lineLimit(2)
                         }
                         ReferenceMedia(reference: reference, thumbnail: false)
@@ -180,7 +180,7 @@ private struct ReferenceInspector: View {
                             .onDrag { ReferenceActions.dragProvider(for: reference, model: model) }
                             .shelfPointer(.openHand)
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Note").font(ShelfStyle.caption.weight(.semibold)).foregroundStyle(ShelfStyle.secondary)
+                            Text("Note").shelfFont(.caption, weight: .semibold).foregroundStyle(ShelfStyle.secondary)
                             TextField("Add a note…", text: Binding(get: { current.note }, set: { kit.updateReference(id: reference.id, note: $0) }), axis: .vertical)
                                 .textFieldStyle(.plain).lineLimit(2...8)
                                 .focused($noteFocused)
@@ -209,7 +209,7 @@ private struct ReferenceInspector: View {
             Image(systemName: "hand.draw.fill").foregroundStyle(PanelTool.references.tint)
             Text("Drag file")
         }
-        .font(ShelfStyle.body.weight(.semibold)).padding(.horizontal, 12).padding(.vertical, 8)
+        .shelfFont(.body, weight: .semibold).padding(.horizontal, 12).padding(.vertical, 8)
         .background(PanelTool.references.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous)
             .strokeBorder(PanelTool.references.tint.opacity(0.45), style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
@@ -246,8 +246,8 @@ private struct ReferenceMedia: View {
             } else if case .text(let text, let truncated) = content, !thumbnail {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 8) {
-                    if truncated { Text("Preview limited to 32 KB. The original file is unchanged.").font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary) }
-                    Text(text).font(.system(size: 12.5, design: .monospaced)).lineSpacing(4).textSelection(.enabled)
+                    if truncated { Text("Preview limited to 32 KB. The original file is unchanged.").shelfFont(.caption).foregroundStyle(ShelfStyle.secondary) }
+                    Text(text).shelfFont(size: 12.5, design: .monospaced).lineSpacing(4).textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }.padding(12)
                 }
@@ -255,7 +255,7 @@ private struct ReferenceMedia: View {
                 VStack(spacing: 8) {
                     Image(systemName: reference.isImage ? "photo" : "doc.text").font(.system(size: thumbnail ? 26 : 30, weight: .light))
                         .foregroundStyle(PanelTool.references.tint)
-                    if !thumbnail { Text("Use Reveal in Finder to view the full file.").font(ShelfStyle.body).multilineTextAlignment(.center) }
+                    if !thumbnail { Text("Use Reveal in Finder to view the full file.").shelfFont(.body).multilineTextAlignment(.center) }
                 }
                 .foregroundStyle(ShelfStyle.secondary).padding(16).frame(maxWidth: .infinity, maxHeight: .infinity)
             }

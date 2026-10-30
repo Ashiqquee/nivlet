@@ -84,7 +84,8 @@ final class ContentPanel: NSPanel {
             }
             let textView = firstResponder as? NSTextView
             let editingText = textView.map { $0.hasMarkedText() || !$0.isFieldEditor } ?? false
-            if let key, !editingText, onListKey(key) { return }
+            let shelfOwnsFocus = firstResponder === contentView || textView?.isFieldEditor == true
+            if let key, !editingText, shelfOwnsFocus, onListKey(key) { return }
         }
         super.sendEvent(event)
     }

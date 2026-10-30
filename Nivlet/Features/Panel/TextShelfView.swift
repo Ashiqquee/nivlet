@@ -10,8 +10,8 @@ struct TextShelfView: View {
     var body: some View {
         if items.isEmpty {
             ShelfEmptyState(symbol: model.tool.symbol,
-                title: "Your prompts, close by",
-                detail: "Save the prompts, rules and context you reuse. Copy one whenever you need it.",
+                title: "Save your first prompt",
+                detail: "Keep a prompt you reuse, ready to copy.",
                 actionTitle: "New \(model.tool.itemName)", tool: model.tool, showsNewShortcut: true, action: model.beginNew)
         } else if filtered.isEmpty {
             ShelfEmptyState(symbol: "magnifyingglass", title: "No matches", detail: "Try a different word or clear your search.",
@@ -59,9 +59,10 @@ private struct ShelfRow: View {
     let copied: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.panelTextScale) private var textScale
     @State private var rowWidth: CGFloat = 0
 
-    private var showsInlineActions: Bool { rowWidth >= 320 }
+    private var showsInlineActions: Bool { rowWidth >= 320 && textScale == 1 }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: ShelfStyle.rowRadius, style: .continuous)
@@ -70,7 +71,7 @@ private struct ShelfRow: View {
                 ItemGlyph(tool: item.tool, symbol: item.symbol)
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 5) {
-                        Text(item.title).font(ShelfStyle.title).lineLimit(1)
+                        Text(item.title).shelfFont(.title).lineLimit(1)
                         if item.favorite {
                             Image(systemName: "star.fill").font(.system(size: 9)).foregroundStyle(ShelfStyle.favourite)
                                 .accessibilityHidden(true)
@@ -80,23 +81,12 @@ private struct ShelfRow: View {
                     // Narrow rows use the footer and context menu instead.
                     .padding(.trailing, showsInlineActions ? 98 : 0)
                     .frame(minHeight: 20, alignment: .leading)
-                    Text(item.source).font(.system(size: 12.5)).foregroundStyle(ShelfStyle.secondary)
+                    Text(item.source).shelfFont(size: 12.5).foregroundStyle(ShelfStyle.secondary)
                         .lineSpacing(1.5).lineLimit(2)
-                    if let fields = item.promptTemplate?.fieldNames, !fields.isEmpty {
-                        HStack(spacing: 4) {
-                            ForEach(fields.prefix(3), id: \.self) { field in
-                                Text(SavedTextPreview.readable(field).lowercased())
-                                    .font(.system(size: 10.5, weight: .medium))
-                                    .padding(.horizontal, 6).padding(.vertical, 2)
-                                    .background(item.tool.tint.opacity(0.14), in: Capsule())
-                                    .foregroundStyle(ShelfStyle.secondary)
-                            }
-                            if fields.count > 3 {
-                                Text("+\(fields.count - 3)").font(.system(size: 10.5, weight: .medium)).foregroundStyle(ShelfStyle.tertiary)
-                            }
-                        }
-                        .padding(.top, 3)
-                        .accessibilityHidden(true)
+                    if item.fieldCount > 0 {
+                        Text(item.fieldCount == 1 ? "1 blank to fill" : "\(item.fieldCount) blanks to fill")
+                            .shelfFont(.caption).foregroundStyle(ShelfStyle.secondary).padding(.top, 3)
+                            .accessibilityHidden(true)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -129,6 +119,7 @@ private struct ShelfRow: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(item.title)
+        .accessibilityValue("Prompt in \(kit.pocketName)")
         .accessibilityHint(item.fieldCount > 0 ? "Opens the prompt so you can fill in its blanks" : "Opens the complete text")
         .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityActions {
@@ -157,8 +148,12 @@ private struct ShelfRow: View {
 
 /// Rows dim slightly on press instead of scaling, so dense lists don't jitter.
 struct RowPressStyle: ButtonStyle {
+    @Environment(\.isFocused) private var focused
     func makeBody(configuration: Configuration) -> some View {
         configuration.label.opacity(configuration.isPressed ? 0.8 : 1)
+            .overlay {
+                if focused { RoundedRectangle(cornerRadius: ShelfStyle.rowRadius).strokeBorder(ShelfStyle.focusRing, lineWidth: 2).allowsHitTesting(false) }
+            }
     }
 }
 
@@ -179,7 +174,7 @@ struct RowChip: View {
                 // The new icon scales up from 0.25 while the old one only fades, each keeping its
                 // own color, so a stale icon never lingers beside the new label.
                 ZStack {
-                    Image(systemName: symbol).font(.system(size: 10.5, weight: .semibold))
+                    Image(systemName: symbol).shelfFont(size: 10.5, weight: .semibold)
                         .foregroundStyle(tint ?? ShelfStyle.secondary)
                         .id(symbol)
                         .transition(.asymmetric(insertion: .scale(scale: 0.25).combined(with: .opacity),
@@ -192,7 +187,7 @@ struct RowChip: View {
                         if let widestTitle { Text(widestTitle).hidden() }
                         Text(title).transaction { $0.animation = nil }
                     }
-                    .font(.system(size: 11.5, weight: .semibold))
+                    .shelfFont(size: 11.5, weight: .semibold)
                 }
             }
             .padding(.horizontal, title == nil ? 6 : 8).frame(height: 22)
@@ -236,9 +231,9 @@ struct SavedTextPreview: View {
                     HStack(alignment: .top, spacing: 12) {
                         ItemGlyph(tool: item.tool, symbol: item.symbol, size: 36)
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(item.title).font(ShelfStyle.display).accessibilityAddTraits(.isHeader)
+                            Text(item.title).shelfFont(.display).accessibilityAddTraits(.isHeader)
                                 .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
-                            Text(meta).font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary)
+                            Text(meta).shelfFont(.caption).foregroundStyle(ShelfStyle.secondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -249,8 +244,8 @@ struct SavedTextPreview: View {
                         }
                     }
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("PREVIEW").font(ShelfStyle.eyebrow).tracking(0.7).foregroundStyle(ShelfStyle.secondary)
-                        Text(preview).font(ShelfStyle.body).lineSpacing(5)
+                        Text("PREVIEW").shelfFont(.eyebrow).tracking(0.7).foregroundStyle(ShelfStyle.secondary)
+                        Text(preview).shelfFont(.body).lineSpacing(5)
                             .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -292,12 +287,12 @@ struct SavedTextPreview: View {
         let filled = PromptTemplate.isFilled(values[field])
         return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 5) {
-                Text(Self.readable(field)).font(ShelfStyle.caption.weight(.semibold)).foregroundStyle(ShelfStyle.secondary)
+                Text(Self.readable(field)).shelfFont(.caption, weight: .semibold).foregroundStyle(ShelfStyle.secondary)
                 if fields.filter({ Self.readable($0) == Self.readable(field) }).count > 1 {
-                    Text("(\(field))").font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary)
+                    Text("(\(field))").shelfFont(.caption).foregroundStyle(ShelfStyle.secondary)
                 }
                 if filled {
-                    Image(systemName: "checkmark.circle.fill").font(.system(size: 10.5)).foregroundStyle(ShelfStyle.success)
+                    Image(systemName: "checkmark.circle.fill").shelfFont(size: 10.5).foregroundStyle(ShelfStyle.success)
                         .transition(.scale(scale: 0.25).combined(with: .opacity)).accessibilityHidden(true)
                 }
             }
@@ -316,7 +311,7 @@ struct SavedTextPreview: View {
         let done = fields.count - missing.count
         return VStack(alignment: .leading, spacing: 7) {
             HStack {
-                Text("\(done) of \(fields.count) filled").font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary).monospacedDigit()
+                Text("\(done) of \(fields.count) filled").shelfFont(.caption).foregroundStyle(ShelfStyle.secondary).monospacedDigit()
                 Spacer()
                 Button("Reset") { showReset = true }
                     .buttonStyle(ShelfButtonStyle(compact: true)).disabled(values.values.allSatisfy(\.isEmpty))

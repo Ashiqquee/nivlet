@@ -1,6 +1,6 @@
 # Phase 6 — Accessible, polished and measured beta
 
-Status: **Not started** · Depends on: Phase 5 ownership/recovery gate
+Status: **In progress — local implementation and measurements; final native acceptance remains open** · Depends on: Phase 5 ownership/recovery gate
 
 [Phase overview](../phases.md) · [Previous](phase5_deliverables.md) · [Next: Phase 7](phase7_deliverables.md)
 
@@ -19,12 +19,12 @@ A coherent beta that people can use with keyboard/VoiceOver, in light/dark appea
 
 ## Deliverables
 
-- [ ] Cohesive five-tool UI with complete empty/error/loading states.
-- [ ] First-run/sample pocket and configurable access/display behavior.
+- [ ] Cohesive four-tool UI with complete empty/error/loading states.
+- [x] First-run/sample pocket and configurable access/display behavior.
 - [ ] Keyboard/VoiceOver, enlarged-text, contrast and reduced-motion verification.
-- [ ] OS/hardware/browser/destination compatibility matrix with limitations.
-- [ ] Measured performance report and build/test reproduction instructions.
-- [ ] `docs/implementation/phase6-beta.md`: AC-01–AC-06 and AC-08 evidence, issues and resolution.
+- [x] OS/hardware/browser/destination compatibility matrix with limitations.
+- [x] Measured performance report and build/test reproduction instructions.
+- [x] [`docs/implementation/phase6-beta.md`](../implementation/phase6-beta.md): current AC-01–AC-06 and AC-08 evidence, issues and remaining checks.
 
 ## Verify
 
@@ -44,4 +44,4 @@ AC-01–AC-06 and AC-08 have reproducible passing evidence, accessibility issues
 
 ## Scope boundary
 
-No new product feature areas, analytics, model integration or broad support claims based on the developer's one machine. Final signing/payment/offline entitlement are Phase 7.
+No new product feature areas, analytics, model integration or broad support claims based on the developer's one machine. Signing, notarization and installer readiness are Phase 7. Nivlet is free; payment and entitlement work are excluded.

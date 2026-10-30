@@ -4,13 +4,15 @@ struct TextItemEditor: View {
     let kit: PocketLibrary
     let model: PanelModel
     @Bindable var draft: TextDraft
-    @FocusState private var focusedField: Field?
+    @State private var titleFocused = false
+    @State private var titleFocusRequest = 1
     @State private var saving = false
     @State private var confirmReset = false
     @State private var bodyFocused = false
     @State private var validationMessage: String?
     @State private var bodyFocusRequest = 0
     @State private var validationTarget: Field?
+    @Environment(\.panelTextScale) private var textScale
     private enum Field { case title, text }
 
     private var parseError: String? {
@@ -44,18 +46,18 @@ struct TextItemEditor: View {
                             ItemGlyph(tool: draft.tool, symbol: draft.usesFields ? "curlybraces" : "text.bubble.fill", size: 36)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(draft.id == nil ? "New \(draft.tool.itemName)" : "Edit \(draft.tool.itemName)")
-                                    .font(ShelfStyle.display).accessibilityAddTraits(.isHeader)
+                                    .shelfFont(.display).accessibilityAddTraits(.isHeader)
                                 Text("A prompt, rule or context you reuse. Copy it any time.")
-                                    .font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary)
+                                    .shelfFont(.caption).foregroundStyle(ShelfStyle.secondary)
                             }
                         }
                         VStack(alignment: .leading, spacing: 6) {
                             fieldLabel("Title")
-                            TextField("Give it a name", text: $draft.title)
-                                .textFieldStyle(.plain).font(.system(size: 13.5, weight: .medium))
+                            PlainTextField(text: $draft.title, label: "Title", placeholder: "Give it a name",
+                                           focusRequest: titleFocusRequest, onFocusChange: { titleFocused = $0 },
+                                           fontSize: 13.5, fontWeight: .medium)
                                 .padding(.horizontal, 11).padding(.vertical, 9)
-                                .shelfWell(radius: 10, focused: focusedField == .title)
-                                .focused($focusedField, equals: .title)
+                                .shelfWell(radius: 10, focused: titleFocused)
                                 .accessibilityLabel("Title")
                                 .accessibilityHint(validationTarget == .title ? (validationMessage ?? "") : "")
                         }
@@ -95,13 +97,13 @@ struct TextItemEditor: View {
                     validationLabel(message)
                 }
                 HStack(spacing: 8) {
-                    Button { _ = model.closeChild() } label: { HStack(spacing: 7) { Text("Cancel").fixedSize(); Keycap("esc") } }
+                    Button { _ = model.closeChild() } label: { HStack(spacing: 7) { Text("Cancel").fixedSize(); if textScale == 1 { Keycap("esc") } } }
                         .buttonStyle(ShelfButtonStyle())
                     Spacer(minLength: 8)
                     Button { saveRequested() } label: {
                         HStack(spacing: 8) {
                             Text(saving ? "Saving…" : "Save").lineLimit(1).fixedSize()
-                            Keycap("⌘", "S", inverted: true)
+                            if textScale == 1 { Keycap("⌘", "S", inverted: true) }
                         }
                     }
                     .buttonStyle(PrimaryButtonStyle()).disabled(saving)
@@ -112,7 +114,6 @@ struct TextItemEditor: View {
             .overlay(alignment: .top) { Rectangle().fill(ShelfStyle.hairline).frame(height: 1) }
         }
         .disabled(saving)
-        .defaultFocus($focusedField, .title)
         .onChange(of: draft.title) { draft.hasChanges = true; validationMessage = nil }
         .onChange(of: draft.text) { draft.hasChanges = true; validationMessage = nil }
         .onChange(of: draft.isFavorite) { draft.hasChanges = true }
@@ -124,17 +125,17 @@ struct TextItemEditor: View {
     }
 
     private func fieldLabel(_ text: String) -> some View {
-        Text(text).font(ShelfStyle.caption.weight(.semibold)).foregroundStyle(ShelfStyle.secondary)
+        Text(text).shelfFont(.caption, weight: .semibold).foregroundStyle(ShelfStyle.secondary)
     }
 
     private func optionRow(_ title: String, detail: String, symbol: String, tint: Color, isOn: Binding<Bool>) -> some View {
         Toggle(isOn: isOn) {
             HStack(alignment: .top, spacing: 10) {
-                Image(systemName: symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(tint)
+                Image(systemName: symbol).shelfFont(size: 11, weight: .semibold).foregroundStyle(tint)
                     .frame(width: 18, height: 18).accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(ShelfStyle.body.weight(.medium))
-                    Text(detail).font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary).fixedSize(horizontal: false, vertical: true)
+                    Text(title).shelfFont(.body, weight: .medium)
+                    Text(detail).shelfFont(.caption).foregroundStyle(ShelfStyle.secondary).fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -151,7 +152,7 @@ struct TextItemEditor: View {
         } icon: {
             Image(systemName: "exclamationmark.circle").foregroundStyle(.red)
         }
-        .font(ShelfStyle.body).fixedSize(horizontal: false, vertical: true)
+        .shelfFont(.body).fixedSize(horizontal: false, vertical: true)
     }
 
     private func saveRequested() {
@@ -159,7 +160,7 @@ struct TextItemEditor: View {
             validationMessage = "Add a title so you can find this later."
             validationTarget = .title
             model.announceValidation(validationMessage!)
-            focusedField = .title
+            titleFocusRequest += 1
             return
         }
         if !PromptTemplate.isFilled(draft.text) {

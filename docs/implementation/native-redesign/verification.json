@@ -1,0 +1,32 @@
+{
+  "environmentDescription": "Nivlet \u00b7 Built with macOS 26.6.2",
+  "expectedFailures": 0,
+  "failedTests": 0,
+  "finishTime": 1793358033.226,
+  "passedTests": 122,
+  "result": "Passed",
+  "runtimeWarnings": [],
+  "skippedTests": 0,
+  "startTime": 1793357973.159,
+  "statistics": [
+    {
+      "subtitle": "109 test runs",
+      "title": "21 tests ran with dynamic parameters"
+    }
+  ],
+  "testFailures": [],
+  "title": "Test - Nivlet",
+  "topInsights": [],
+  "totalTestCount": 122,
+  "environment": "Apple M3 MacBook Air, arm64, macOS 26.6.2 (25G83); Xcode 27.1, macOS 27 SDK, Swift 6.4; deployment floor macOS 14",
+  "passedCases": 210,
+  "xcresult": "build/DerivedData/Logs/Test/Test-Nivlet-2026.10.30_16-29-33-+0530.xcresult",
+  "release_package": {
+    "path": "build/Nivlet-InternalBeta-arm64.zip",
+    "bytes": 1468909,
+    "sha256": "f6f5db8594e4119fb73a29de5b29ad8040283593404f2822370433c663f975bd",
+    "architecture": "arm64",
+    "signature": "ad-hoc; codesign --verify --strict passed",
+    "notarized": false
+  }
+}

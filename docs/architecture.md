@@ -8,7 +8,7 @@ Proposed implementation architecture · updated 27 October 2026 · application n
 
 A native Mac utility opens from a configurable edge tab and keeps a small project kit beside an existing AI app. The four tools are prompts (plain or with optional fill-in blanks; instructions merged into prompts on 27 October 2026), reference files, pockets and scratchpad. Users choose what to copy or attach.
 
-Build one desktop application. No working-feature backend, embedded model, provider SDK, webview UI, chat integration or automatic disclosure is required. Website payment, signed licence delivery and optional update checks are separate distribution concerns.
+Build one desktop application. No working-feature backend, embedded model, provider SDK, webview UI, chat integration or automatic disclosure is required. The signed download and optional update checks are separate distribution concerns. Nivlet is free (30 October 2026), so there is no payment or licence component.
 
 The architecture follows the PRD's proposed SwiftUI/AppKit/SQLite direction. macOS 14 is a provisional floor; validate the real SDK/toolchain and native feasibility before finalising support. Newer APIs need availability guards and genuine fallbacks. No third-party library or database wrapper has been selected.
 
@@ -26,12 +26,9 @@ flowchart TB
   Work --> Recovery[Export, restore and migration recovery]
   Recovery --> Store
   Recovery --> Assets
-  App --> License[Local signature verification]
-  License --> Entitlement[Trial or paid entitlement]
-  Entitlement --> Work
 ```
 
-Arrows indicate coordination/dependency, not automatic data transmission. Feature views do not issue SQL, manage NSPanel instances, sign licences or send material to an AI provider. Use narrow protocols only at real test/platform boundaries; do not create a framework for every component.
+Arrows indicate coordination/dependency, not automatic data transmission. Feature views do not issue SQL, manage NSPanel instances or send material to an AI provider. Use narrow protocols only at real test/platform boundaries; do not create a framework for every component.
 
 | Boundary | Responsibilities | Excludes |
 |---|---|---|
@@ -43,7 +40,6 @@ Arrows indicate coordination/dependency, not automatic data transmission. Featur
 | Asset store | Staging, digests, immutable originals, thumbnails, export copies and cleanup | Moving/mutating source files |
 | Transfer adapters | User-triggered pasteboard read through the standard paste action, pasteboard write, safe preview, file URLs/promises, Finder fallback | Background clipboard polling, custom-button pasteboard reads that trigger the privacy alert, or auto-send |
 | Recovery | Consistent export, bounded restore, migration snapshot and rollback | Silent overwrite/merge |
-| Licensing | Verify signed entitlement locally; enforce agreed creation limits | Storing issuer private keys or periodic renewal |
 
 ## Native shell and state
 
@@ -78,7 +74,6 @@ Nivlet/
     Scratchpad/
   Domain/          value types and pure template parsing/rendering
   Storage/         SQLite, staged assets, migrations, exports and recovery
-  Licensing/       signed payload verification and entitlement policy
 NivletTests/   correctness and failure tests
 docs/implementation/   measured evidence and actual decisions
 ```
@@ -97,7 +92,6 @@ Keep files/types small enough to understand. An app state object is not an excus
 | Scratchpad | One per pocket; plain text, checklist state and revision |
 | Trash/recovery | Deleted records/assets still retained, expiry, pending operations and failed drafts |
 | Preferences | Display/edge/size, shortcut, appearance and device-local view state |
-| Entitlement | Signed licence payload/verification state, isolated from working content |
 
 Pocket content belongs to one pocket. A duplicate receives independent item IDs/metadata; identical asset bytes may be shared internally. Moving an item is explicit. Switching pockets never changes provider conversations or memory.
 
@@ -160,7 +154,7 @@ Flush/recover the current draft before changing local pocket/view. Async results
 
 ### Export, restore and migrate
 
-Export from a consistent metadata snapshot and retain asset references until completion. Package versioned JSON and original assets; exclude paid entitlement and machine-specific display settings. Preview contents before transfer.
+Export from a consistent metadata snapshot and retain asset references until completion. Package versioned JSON and original assets; exclude machine-specific display settings. Preview contents before transfer.
 
 Restore to staging, bound expanded sizes/file counts, validate schemas/digests/paths, reject traversal/symlink escapes, then commit as new pockets. Failure leaves the existing library unchanged. A crash after file placement but before metadata commit is reconciled on startup. Never silently merge or overwrite user content.
 
@@ -172,13 +166,11 @@ The tab opens a text-readable toolkit, not a marketing landing page. Cards/Promp
 
 Read [native UI guide](native-ui-guide.md), inspect [actual captured references](../references/ui-ux/refbox/README.md), and use [the selected skills](agent-skills.md). Reference pixels inform composition; they do not override the five-tool scope or establish native behavior.
 
-## Offline licence and network boundaries
+## Network boundaries
 
-Only the verification public key belongs in the application. Licence issuance and private signing keys live outside the repository/app. Verify a versioned signed payload locally; a valid paid base entitlement has no periodic network renewal dependency.
+Nivlet is free (owner decision, 30 October 2026); the earlier signed offline licence design was dropped, so the app holds no verification key and has no entitlement state.
 
-Two-personal-Mac terms are a proposed policy, not a capability a purely offline verifier can reliably enforce. Record the trust/refund/recovery tradeoff explicitly. Trial/paid creation limits must not destroy or lock away previously saved content.
-
-No pocket content/names/paths are sent to checkout, licence recovery, diagnostic services or update checks. Core tools have no network dependency. Automatic updates are optional; manual signed installers suffice for v1. Distribution remains outside working-data operations.
+No pocket content/names/paths are sent to diagnostic services or update checks. Core tools have no network dependency. Automatic updates are optional; manual signed installers suffice for v1. Distribution remains outside working-data operations.
 
 ## Verification and build order
 
@@ -189,7 +181,6 @@ No pocket content/names/paths are sent to checkout, licence recovery, diagnostic
 | Originals | AC-04 digests across import, restart, removed sources, transfer and restore |
 | Isolation | AC-05 switching, similar labels, move/duplicate and trash/Undo |
 | Recovery | AC-06 injected write/interruption failures and hostile bounded-archive cases |
-| Licence | AC-07 valid/tampered payload and offline/date-change behavior |
 | Accessibility | AC-08 actual keyboard/VoiceOver, contrast, enlarged text and reduced-motion checks |
 
 Start with the native shell spike, then durable text, the complete one-pocket slice, multiple pockets, recovery, polish and distribution. See [the eight phases](phases.md). Add services only as their phase needs them.

@@ -57,6 +57,7 @@ final class PocketLibrary {
         case reference(ReferenceItem, Int)
     }
     private var deletedRecords: [(owner: UUID, record: DeletedRecord)] = []
+    private var quickStartPocketID: UUID?
 
     var hasUnsavedChanges: Bool { isLoaded && !isPreview && revision > savedRevision }
     var canUndoDelete: Bool { deletedRecords.contains { $0.owner == pocketID } }
@@ -362,6 +363,35 @@ final class PocketLibrary {
         collection.pockets.append(pocket)
         changed(debounce: true)
         return pocket.pocketID
+    }
+
+    /// Only an untouched blank library receives the automatic introduction.
+    /// Reopening Help never replaces or seeds an existing pocket.
+    var isBlankLibrary: Bool {
+        isLoaded && !needsRecoveryReview && collection.trash.isEmpty && pockets.count == 1 &&
+        prompts.isEmpty && references.isEmpty && note.isEmpty && pocketName == "My pocket"
+    }
+
+    /// A separate ordinary pocket, removable through the existing seven-day
+    /// pocket recovery flow. Retry retains its identity after a failed commit.
+    @discardableResult
+    func addQuickStartPocket() async -> Bool {
+        guard isLoaded, !isPreview, !isSwitching, !isImporting, !isArchiveBusy else { return false }
+        isSwitching = true
+        defer { isSwitching = false }
+        if let id = quickStartPocketID, pockets.contains(where: { $0.pocketID == id }) {
+            return await retrySaving()
+        }
+        guard await flush() else { return false }
+        let pocket = LibrarySnapshot(pocketID: UUID(), pocketName: "Sample pocket", prompts: [
+            SavedPrompt(label: "Writing style", source: "Write in plain, specific language. Keep my meaning and voice. Use concrete examples.", isFavorite: true),
+            SavedPrompt(label: "Explain a concept", source: "Explain {{topic}} to {{audience}}. Start with an everyday example, then build up the details.", usesFields: true)
+        ], references: [], note: "Try your pocket\n[ ] Copy the Writing style prompt\n[ ] Fill in Explain a concept\n[ ] Add a reference file with ⌘2, then ⌘N\n[ ] Create a pocket for your own project")
+        quickStartPocketID = pocket.pocketID
+        collection.pockets.append(pocket)
+        collection.activePocketID = pocket.pocketID
+        changed()
+        return await flush()
     }
 
     @discardableResult

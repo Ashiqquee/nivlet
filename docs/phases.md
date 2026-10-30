@@ -4,7 +4,7 @@ Implementation plan · updated 29 October 2026
 
 Build a native Mac edge-panel utility in eight phases. First prove the panel and file handoff, then make the tools work locally, then protect users' data and prepare distribution. Each phase ends with a demonstrable result and recorded evidence.
 
-**Current state:** The native shell builds and tests pass. Phase 2's local durability gate passes: saved plain prompts, ordering/deletion Undo, scratchpad autosave, exact copy and failed-save recovery have [recorded evidence](implementation/phase2-persistence.md). Phase 3 now adds [verified named blanks and original-file intake/retry/previews](implementation/phase3-vertical-slice.md), including a tested Finder fallback. Phase 4 adds [verified pocket isolation, scoped search and recoverable deletion](implementation/phase4-pockets.md). Phase 5 adds [validated portable ownership, migration recovery and safe cleanup](implementation/phase5-recovery.md). External drag destinations, display/Spaces behavior and other native acceptance gates remain open. See the [current UI audit](implementation/ui-audit.md) and [initial feasibility evidence](implementation/phase1-feasibility.md).
+**Current state:** The native shell builds and tests pass. Phase 2's local durability gate passes: saved plain prompts, ordering/deletion Undo, scratchpad autosave, exact copy and failed-save recovery have [recorded evidence](implementation/phase2-persistence.md). Phase 3 now adds [verified named blanks and original-file intake/retry/previews](implementation/phase3-vertical-slice.md), including a tested Finder fallback. Phase 4 adds [verified pocket isolation, scoped search and recoverable deletion](implementation/phase4-pockets.md). Phase 5 adds [validated portable ownership, migration recovery and safe cleanup](implementation/phase5-recovery.md). Phase 6 now adds [first run, text enlargement, keyboard fixes and measured local beta evidence](implementation/phase6-beta.md); its final accessibility/compatibility gate remains open. External drag destinations, display/Spaces behavior and other native acceptance gates remain open. See the [current UI audit](implementation/ui-audit.md) and [initial feasibility evidence](implementation/phase1-feasibility.md).
 
 ## Scope and source of truth
 
@@ -13,7 +13,7 @@ Build a native Mac edge-panel utility in eight phases. First prove the panel and
 - [Supplied full brief](https://files.instinct.com/ipl7v9gvfnb3-brief-board-product-requirements): source PRD v0.3.
 - [Refbox](https://ref.box/): design reference; do not copy its artwork or branding.
 
-First release: prompts (plain or with fill-in blanks), reference shelf, project pockets and scratchpad. Instructions and prompts were merged into one Prompts tool on 27 October 2026 (owner decision; see [decisions](implementation/decisions.md#instructions-merged-into-prompts-27-october-2026)). No model/provider API, chat capture, auto-paste/send, OCR, sync or hosted working library. Keep the proposed US$1–3 purchase target; price, trial limits and licence terms remain open rather than silently finalised by this plan.
+First release: prompts (plain or with fill-in blanks), reference shelf, project pockets and scratchpad. Instructions and prompts were merged into one Prompts tool on 27 October 2026 (owner decision; see [decisions](implementation/decisions.md#instructions-merged-into-prompts-27-october-2026)). No model/provider API, chat capture, auto-paste/send, OCR, sync or hosted working library. Nivlet is free with optional Buy Me a Coffee support (owner decision, 30 October 2026).
 
 ## How to build it
 
@@ -23,7 +23,7 @@ Use the PRD's proposed native approach: SwiftUI views, AppKit for the panel/menu
 
 Keep the UI, window behavior and storage separate enough to test exact copying, template parsing, saves and file integrity without driving the whole interface. Use a single local application, not a model service or a web backend for working features. Add dependencies only for an identified need and record their licences/deployment support.
 
-The component boundaries live in [the architecture](architecture.md#proposed-source-layout); implemented code lives in `Nivlet/`. Create abstractions when needed; the layout does not require a separate framework or service for every folder. Licence-signing private keys belong outside the app and repository.
+The component boundaries live in [the architecture](architecture.md#proposed-source-layout); implemented code lives in `Nivlet/`. Create abstractions when needed; the layout does not require a separate framework or service for every folder.
 
 ## Local setup observation
 
@@ -42,11 +42,11 @@ Phase 1 must select/configure an existing full Xcode installation or arrange ins
 | [3 — Templates and references](phases/phase3_deliverables.md) | Complete one-pocket text/reference slice | Template rendering and original-file integrity verified | 2 | Local gate passed; Finder fallback tested |
 | [4 — Pocket workflow](phases/phase4_deliverables.md) | Multiple pockets, search, organisation and deletion recovery | Isolation, switching and Undo/trash work | 3 | Local gate passed; release compatibility checks remain open |
 | [5 — Ownership and recovery](phases/phase5_deliverables.md) | Portable exports, validated restore and migrations | Clean-install round trip and failure recovery pass | 4 | Local gate passed; release compatibility checks remain open |
-| [6 — Usable beta](phases/phase6_deliverables.md) | Polished accessible app with measured compatibility | AC-01–AC-06 and AC-08 have evidence | 5 | Not started |
-| [7 — Purchase and installer readiness](phases/phase7_deliverables.md) | Offline entitlement, test payment flow and signed release candidate | AC-07 plus licence/install/update recovery pass | 6; commercial choices | Not started |
+| [6 — Usable beta](phases/phase6_deliverables.md) | Polished accessible app with measured compatibility | AC-01–AC-06 and AC-08 have evidence | 5 | In progress; local implementation/measurements recorded, native gate open |
+| [7 — Installer readiness](phases/phase7_deliverables.md) | Signed, notarized release candidate (Nivlet is free) | Install/update recovery passes | 6 | In progress; [local tooling/recovery verified](implementation/phase7-distribution.md), signing/native gates open |
 | [8 — Validation and release](phases/phase8_deliverables.md) | Observed reuse, reviewed release package and authorised launch | Validation evaluated and release checklist resolved | 7; tester/release authorisation | Not started |
 
-Run an early, read-only payment-fee/seller-eligibility assessment during Phase 1 so a US$1–3 sale is assessed before substantial work. Actual provider selection, accounts and payment integration stay in Phase 7. No delivery dates are estimated before the native spike.
+Nivlet is free (owner decision, 30 October 2026), so the earlier payment-fee assessment and Phase 7 payment integration are dropped. No delivery dates are estimated before the native spike.
 
 ## What each milestone should feel like
 
@@ -56,7 +56,7 @@ Run an early, read-only payment-fee/seller-eligibility assessment during Phase 1
 - After Phase 4: switch between projects without mixing their material.
 - After Phase 5: move the complete library to a clean installation and recover it safely.
 - After Phase 6: use the app comfortably by keyboard/VoiceOver and on tested displays.
-- After Phase 7: verify a signed licence offline and install a tested release candidate.
+- After Phase 7: install a tested, signed release candidate.
 - After Phase 8: have evidence of repeat use and a released app only after the release action is authorised.
 
 ## Validation coverage
@@ -69,10 +69,10 @@ Run an early, read-only payment-fee/seller-eligibility assessment during Phase 1
 | AC-04 Files | Phase 3 | Phases 5–6 |
 | AC-05 Pockets | Phase 4 | Phase 6 |
 | AC-06 Recovery | Phase 2 failure handling; full Phase 5 | Phases 5–6 |
-| AC-07 Offline entitlement | Phase 7 | Phase 7 release candidate |
+| AC-07 Offline entitlement | Dropped (free app) | — |
 | AC-08 Accessibility | Basic keyboard behavior from Phase 1 | Phase 6 |
 
-Use meaningful unit/integration tests for parser rules, transaction failures, asset digests, archive validation and licence verification. Use manual/native UI checks for focus, Spaces, drag targets and accessibility. Do not claim external app compatibility based only on unit tests.
+Use meaningful unit/integration tests for parser rules, transaction failures, asset digests, and archive validation. Use manual/native UI checks for focus, Spaces, drag targets and accessibility. Do not claim external app compatibility based only on unit tests.
 
 Build and test commands (run successfully on 27 October 2026 with Xcode 27.1; see [Phase 1 evidence](implementation/phase1-feasibility.md#build-and-test-commands)):
 

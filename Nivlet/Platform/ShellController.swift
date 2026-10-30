@@ -18,11 +18,14 @@ final class ShellController: NSObject {
     let panelModel: PanelModel
 
     private(set) var isOpen = false
+    private(set) var showsIntroduction = false
+    var introductionShowsGuide = false
+    var isPreparingIntroduction = false
     var isPinned = false {
         didSet { updateOutsideClickMonitor() }
     }
     private var childIsPresented: Bool {
-        presentingChild || archivePicker != nil || referencePicker != nil || panelModel.archivePresentation != nil || contentPanel?.attachedSheet != nil
+        isPreparingIntroduction || presentingChild || archivePicker != nil || referencePicker != nil || panelModel.archivePresentation != nil || contentPanel?.attachedSheet != nil
     }
     private var presentingChild = false {
         didSet { updateOutsideClickMonitor() }
@@ -72,7 +75,7 @@ final class ShellController: NSObject {
         panel.onClose = { [weak self] in self?.tuck() }
         contentPanel = panel
         panel.canPasteReferences = { [weak self] in
-            guard let self else { return false }
+            guard let self, !self.showsIntroduction else { return false }
             return self.panelModel.archivePresentation == nil && self.panelModel.tool == .references && self.panelModel.inspector == nil && self.kit.isLoaded && !self.kit.isPreview && !self.kit.isImporting && !self.kit.isSwitching && self.panelModel.query.isEmpty && ReferencePasteboard.canPaste(from: self.panelModel.transferPasteboard)
         }
         panel.onPasteReferences = { [weak self] in
@@ -82,21 +85,21 @@ final class ShellController: NSObject {
         }
         panelModel.focusForEditing = { [weak panel] in panel?.makeKey() }
         panel.onFind = { [weak self] in
-            guard let self, self.panelModel.archivePresentation == nil else { return }
+            guard let self, !self.showsIntroduction, self.panelModel.archivePresentation == nil else { return }
             self.panelModel.searchFocusRequest += 1
         }
         panel.onNew = { [weak self] in
-            guard let self, self.panelModel.archivePresentation == nil else { return }
+            guard let self, !self.showsIntroduction, self.panelModel.archivePresentation == nil else { return }
             if self.panelModel.tool == .references { self.chooseReferenceFiles() }
             else if self.panelModel.tool == .notes { self.panelModel.beginScratchpadTask() }
             else { self.panelModel.beginNew() }
         }
         panel.onListKey = { [weak self] key in
-            guard let self else { return false }
+            guard let self, !self.showsIntroduction else { return false }
             return self.panelModel.handle(key, kit: self.kit)
         }
         panel.onUndoDelete = { [weak self] in
-            guard let self, self.panelModel.archivePresentation == nil, self.kit.canUndoDelete else { return false }
+            guard let self, !self.showsIntroduction, self.panelModel.archivePresentation == nil, self.kit.canUndoDelete else { return false }
             self.kit.undoDelete(); return true
         }
 
@@ -183,7 +186,7 @@ final class ShellController: NSObject {
         }
         let target = panel.frame.offsetBy(dx: preferences.edge == .right ? panel.frame.width + EdgeLayout.panelGap : -panel.frame.width - EdgeLayout.panelGap, dy: 0)
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.24
+            context.duration = 0.14
             context.timingFunction = CAMediaTimingFunction(controlPoints: 0.4, 0, 0.8, 0.2)
             panel.animator().setFrame(target, display: true)
             panel.animator().alphaValue = 0.7
@@ -214,7 +217,7 @@ final class ShellController: NSObject {
             panel.orderFrontRegardless()
         }
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.30
+            context.duration = 0.14
             context.timingFunction = CAMediaTimingFunction(controlPoints: 0.16, 1, 0.3, 1)
             panel.animator().setFrame(target, display: true)
             panel.animator().alphaValue = 1
@@ -225,8 +228,14 @@ final class ShellController: NSObject {
 
     /// Escape closes the innermost child first, then tucks.
     func handleEscape() -> Bool {
+        if showsIntroduction {
+            if introductionShowsGuide { introductionShowsGuide = false; return true }
+            if !isPreparingIntroduction { finishIntroduction() }
+            return true
+        }
         if panelModel.archivePresentation != nil { return false } // Let the preview's Cancel shortcut handle Escape.
         if panelModel.closeChild() { return true }
+        if !panelModel.query.isEmpty { panelModel.query = ""; return true }
         guard isOpen else { return false }
         tuck()
         return true
@@ -427,6 +436,39 @@ final class ShellController: NSObject {
     }
 
     // MARK: Settings
+
+    func libraryDidLoad() {
+        guard kit.isLoaded, !kit.isPreview, !preferences.hasCompletedIntroduction else { return }
+        if kit.isBlankLibrary { showIntroduction() }
+        else { preferences.hasCompletedIntroduction = true }
+    }
+
+    func showIntroduction() {
+        guard !childIsPresented else { return }
+        introductionShowsGuide = false
+        showsIntroduction = true
+        open(source: .menu)
+        focusArchivePreview()
+    }
+
+    func finishIntroduction() {
+        introductionShowsGuide = false
+        preferences.hasCompletedIntroduction = true
+        showsIntroduction = false
+        panelModel.searchFocusRequest += 1
+    }
+
+    /// The shell owns this guard, so removing the introduction view after a
+    /// successful save cannot leave collapse/click-away permanently blocked.
+    func addIntroductionSample() async -> Bool {
+        guard !isPreparingIntroduction else { return false }
+        isPreparingIntroduction = true
+        defer { isPreparingIntroduction = false }
+        guard await kit.addQuickStartPocket() else { return false }
+        panelModel.restorePocketView(kit)
+        finishIntroduction()
+        return true
+    }
 
     func setAppearance(_ appearance: PanelAppearance) {
         preferences.appearance = appearance

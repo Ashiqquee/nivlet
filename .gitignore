@@ -86,4 +86,14 @@ docs/implementation/*
 !docs/implementation/phase5-recovery.md
 !docs/implementation/phase5-recovery/
 docs/reference/*
-website
+# Phase 6 beta evidence.
+!docs/implementation/phase6-beta.md
+!docs/implementation/phase6-beta/
+
+# Native interface redesign evidence.
+!docs/implementation/native-redesign.md
+!docs/implementation/native-redesign/
+
+# Phase 7 distribution evidence.
+!docs/implementation/phase7-distribution.md
+!docs/implementation/phase7-distribution/

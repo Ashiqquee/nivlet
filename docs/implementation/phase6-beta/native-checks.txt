@@ -1,0 +1,71 @@
+Phase 6 native checks — 30 October 2026
+Apple M3 arm64; macOS 26.6.2 (25G83); Xcode 27.1 / macOS 27 SDK
+Separate phase6review bundle; synthetic phase6 libraries; private nivlet-verification-phase6 clipboard
+
+FIRST RUN
+PASS Review panel open
+PASS Automatic first run
+PASS Find Add sample pocket
+PASS Press Add sample pocket
+PASS Sample pocket saved and selected
+PASS Both sample prompts exposed
+PASS Find Pin panel
+PASS Press Pin panel
+PASS Find Writing style
+PASS Press Writing style
+PASS Find Copy prompt
+PASS Press Copy prompt
+PASS Exact reviewed text copied privately
+PASS Review app owns keyboard input
+PASS Escape closes preview
+PASS Find Collapse
+PASS Press Collapse
+PASS First-run completion releases collapse guard
+PASS Saved sample remains available
+
+PINNED KEYBOARD CORE SESSION
+PASS Review controls available
+PASS Review app owns keyboard input
+PASS Panel available before keyboard reopen
+PASS Find Collapse
+PASS Press Collapse
+PASS Tucked before keyboard reopen
+PASS Keyboard reopen shows panel
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Command-F focuses search
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Search results update
+PASS Review app owns keyboard input
+PASS Escape clears query first
+PASS Review app owns keyboard input
+PASS Command-N focuses title
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Tab reaches prompt editor
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Command-S saves prompt
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Return opens selected result preview
+PASS Review app owns keyboard input
+PASS Native editor, save, preview and copy retain exact Unicode and whitespace
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Command-N focuses new to-do
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Return creates accessible checkbox
+PASS Review app owns keyboard input
+PASS Escape tucks root
+PASS Tucking preserves scratchpad
+
+WARM OPEN
+30 before/after samples retained in warm-open-before.json and warm-open-after.json.
+Unpinned app/Space activation, complete Full Keyboard Access and spoken VoiceOver remain unverified.

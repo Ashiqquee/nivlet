@@ -15,17 +15,17 @@ struct PocketSearchView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 4) {
                         Text(results.count == 1 ? "1 result · \(model.searchScope.rawValue)" : "\(results.count) results · \(model.searchScope.rawValue)")
-                            .font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary).padding(8)
+                            .shelfFont(.caption).foregroundStyle(ShelfStyle.secondary).padding(8)
                         ForEach(results) { result in
                             Button { Task { await model.openSearchResult(result, kit: kit) } } label: {
                                 HStack(alignment: .top, spacing: 10) {
                                     Image(systemName: result.tool.symbol).frame(width: 18)
                                     VStack(alignment: .leading, spacing: 4) {
-                                        Text(result.label).font(ShelfStyle.title).lineLimit(2)
+                                        Text(result.label).shelfFont(.title).lineLimit(2)
                                         Text("\(result.pocketName) · \(result.tool.title)")
-                                            .font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary)
+                                            .shelfFont(.caption).foregroundStyle(ShelfStyle.secondary)
                                         if !result.excerpt.isEmpty {
-                                            Text(result.excerpt).font(ShelfStyle.body).foregroundStyle(ShelfStyle.secondary).lineLimit(2)
+                                            Text(result.excerpt).shelfFont(.body).foregroundStyle(ShelfStyle.secondary).lineLimit(2)
                                         }
                                     }
                                     Spacer(minLength: 0)
@@ -54,9 +54,9 @@ struct MoveToPocketView: View {
     let model: PanelModel
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Move to pocket").font(.headline)
+            Text("Move to pocket").shelfFont(.title)
             Text("The item will leave \(kit.pocketName). Its label, note and original file stay together.")
-                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                .shelfFont(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             ScrollView {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(kit.pockets.filter { $0.pocketID != kit.pocketID }) { pocket in

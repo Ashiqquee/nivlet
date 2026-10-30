@@ -18,6 +18,18 @@ struct PanelRootView: View {
     private var isListMode: Bool { kit.isLoaded && model.inspector == nil && model.tool != .notes && model.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     var body: some View {
+        Group {
+            if shell.showsIntroduction { QuickStartView(shell: shell) }
+            else { toolkit }
+        }
+        .environment(\.panelTextScale, shell.preferences.textSize.scale)
+        // A parent transaction also covers child transitions and system-setting
+        // changes, including one already animating when Reduce Motion is enabled.
+        .transaction { if reduceMotion { $0.animation = nil; $0.disablesAnimations = true } }
+        .task { await kit.load(); model.restorePocketView(kit); shell.libraryDidLoad() }
+    }
+
+    private var toolkit: some View {
         HStack(spacing: 8) {
             shelf.environment(\.layoutDirection, contentDirection)
             rail.environment(\.layoutDirection, contentDirection)
@@ -28,21 +40,24 @@ struct PanelRootView: View {
         // The action rail always sits toward the centre of the desktop.
         .environment(\.layoutDirection, shell.preferences.edge == .right ? .rightToLeft : .leftToRight)
         .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
-        .font(ShelfStyle.body)
+        .shelfFont(.body)
         .foregroundStyle(ShelfStyle.ink)
         .ignoresSafeArea()
-        .task { await kit.load(); model.restorePocketView(kit) }
         .onChange(of: model.bookmark) { kit.updateView(model.bookmark) }
         .disabled(kit.isSwitching)
         .onChange(of: kit.prompts.map(\.id)) { if !kit.isSwitching { model.reconcileSelection(kit) } }
         .onChange(of: kit.references.map(\.id)) { if !kit.isSwitching { model.reconcileSelection(kit) } }
         .overlay {
             if let presentation = model.archivePresentation {
-                ZStack {
-                    Color.black.opacity(0.18).ignoresSafeArea().contentShape(Rectangle())
-                    ArchiveTransferView(presentation: presentation, kit: kit, shell: shell) { model.archivePresentation = nil }
-                        .id(presentation.id).panelSurface(radius: 13)
-                        .shadow(color: .black.opacity(0.3), radius: 20, y: 8)
+                GeometryReader { geometry in
+                    ZStack {
+                        Color.black.opacity(0.18).ignoresSafeArea().contentShape(Rectangle())
+                        ArchiveTransferView(presentation: presentation, kit: kit, shell: shell) { model.archivePresentation = nil }
+                            .id(presentation.id).panelSurface(radius: 13)
+                            .frame(width: min(420, max(1, geometry.size.width - 24)), height: min(520, max(1, geometry.size.height - 24)))
+                            .shadow(color: .black.opacity(0.3), radius: 20, y: 8)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
         }
@@ -60,6 +75,9 @@ struct PanelRootView: View {
         } message: { Text("Its complete kit can be restored from Deleted pockets for seven days. This does not change any AI conversation.") }
         .onChange(of: model.searchFocusRequest) { searchFocused = true }
         .onChange(of: model.tool) { kit.flushSoon() }
+        .onChange(of: kit.saveState) {
+            if case .failed(let message) = kit.saveState { model.announceValidation(message) }
+        }
         .onChange(of: searchFocused) {
             if searchFocused { model.focusForEditing(); kit.flushSoon() }
         }
@@ -144,19 +162,19 @@ struct PanelRootView: View {
             headerRow(compact: false)
             headerRow(compact: true)
         }
-        .padding(.leading, 18).padding(.trailing, 14).padding(.top, 18).padding(.bottom, 14)
+        .padding(.leading, 18).padding(.trailing, 14).padding(.top, 18).padding(.bottom, 12)
         .animation(reduceMotion ? nil : ShelfStyle.pop, value: model.tool)
     }
 
     private func headerRow(compact: Bool) -> some View {
         HStack(spacing: 10) {
-            ToolTile(tool: model.tool, size: 30)
+            ToolTile(tool: model.tool, size: 24)
                 .id(model.tool)
                 .transition(.scale(scale: 0.6).combined(with: .opacity))
             VStack(alignment: .leading, spacing: 1) {
-                Text(model.tool.title).font(ShelfStyle.heading).lineLimit(1)
+                Text(model.tool.title).shelfFont(.heading).lineLimit(1)
                     .accessibilityAddTraits(.isHeader)
-                Text(subtitle).font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary).lineLimit(1)
+                Text(subtitle).shelfFont(.caption).foregroundStyle(ShelfStyle.secondary).lineLimit(1)
                     .contentTransition(.numericText())
             }
             .fixedSize(horizontal: true, vertical: false)
@@ -211,9 +229,9 @@ struct PanelRootView: View {
             Button("Delete pocket…", role: .destructive) { deletingPocket = true }
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: "folder.fill").font(.system(size: 10.5)).foregroundStyle(ShelfStyle.secondary)
+                Image(systemName: "folder.fill").shelfFont(size: 10.5).foregroundStyle(ShelfStyle.secondary)
                 if !compact {
-                    Text(kit.pocketName).font(.system(size: 12, weight: .medium)).lineLimit(1)
+                    Text(kit.pocketName).shelfFont(size: 12, weight: .medium).lineLimit(1)
                         .frame(maxWidth: 120)
                 }
                 Image(systemName: "chevron.up.chevron.down").font(.system(size: 8, weight: .bold)).foregroundStyle(ShelfStyle.secondary)
@@ -237,29 +255,32 @@ struct PanelRootView: View {
 
     private var search: some View {
         HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").font(.system(size: 12.5, weight: .medium)).foregroundStyle(ShelfStyle.secondary)
+            Image(systemName: "magnifyingglass").shelfFont(size: 12.5, weight: .medium).foregroundStyle(ShelfStyle.secondary)
                 .accessibilityHidden(true)
-            TextField(model.searchScope == .all ? "Search all pockets…" : "Search this pocket…", text: $model.query)
-                .textFieldStyle(.plain).font(.system(size: 13.5)).focused($searchFocused)
+            TextField(model.searchScope == .all ? "Search all pockets…" : "Search pocket…", text: $model.query)
+                .textFieldStyle(.plain).shelfFont(size: 13.5).focused($searchFocused)
                 .accessibilityLabel(model.searchScope == .all ? "Search all pockets" : "Search in \(kit.pocketName)")
             Menu {
                 Picker("Search scope", selection: $model.searchScope) {
                     ForEach(PocketSearchScope.allCases) { scope in Text(scope.rawValue).tag(scope) }
                 }
             } label: {
-                Text(model.searchScope == .all ? "All pockets" : "This pocket").font(ShelfStyle.caption).fixedSize()
+                Image(systemName: model.searchScope == .all ? "square.stack" : "line.3.horizontal.decrease")
+                    .font(.system(size: 13, weight: .medium))
+                    .frame(width: 24, height: 24)
             }
             .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden)
-            .accessibilityLabel("Search scope: \(model.searchScope.rawValue)").shelfPointer()
+            .accessibilityLabel("Search scope: \(model.searchScope.rawValue)")
+            .help("Search scope: \(model.searchScope.rawValue)").shelfPointer()
             if !model.query.isEmpty {
                 Button { model.query = "" } label: { Image(systemName: "xmark.circle.fill") }
                     .buttonStyle(.borderless).foregroundStyle(ShelfStyle.secondary).accessibilityLabel("Clear search")
                     .shelfPointer()
-            } else if !searchFocused {
+            } else if !searchFocused, shell.preferences.textSize == .standard {
                 Keycap("⌘", "F")
             }
         }
-        .padding(.horizontal, 12).frame(height: 38)
+        .padding(.horizontal, 12).padding(.vertical, 9).frame(minHeight: 38)
         .shelfWell(radius: 10, focused: searchFocused)
         .padding(.horizontal, 14).padding(.bottom, 10)
     }
@@ -268,7 +289,9 @@ struct PanelRootView: View {
 
     private var showsFooter: Bool {
         if case .failed = kit.saveState { return true }
-        return model.inspector == nil && kit.isLoaded
+        guard model.inspector == nil, kit.isLoaded else { return false }
+        return model.tool == .notes || !model.query.isEmpty || model.resolvedSelection(kit) != nil ||
+            kit.canUndoDelete || kit.isImporting || kit.saveState == .saving || kit.saveState == .preview
     }
 
     @ViewBuilder private var footer: some View {
@@ -282,13 +305,13 @@ struct PanelRootView: View {
                     Button("Retry") { Task { if kit.isLoaded { await kit.retrySaving() } else { await kit.load() } } }
                         .buttonStyle(ShelfButtonStyle(filled: true, compact: true))
                 }
-                .font(ShelfStyle.caption).padding(.horizontal, 16).padding(.vertical, 12)
+                .shelfFont(.caption).padding(.horizontal, 16).padding(.vertical, 12)
             } else if let notice = kit.maintenanceNotice {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(notice).fixedSize(horizontal: false, vertical: true)
                     Button("Review") { model.archivePresentation = ArchivePresentation(mode: .cleanup) }
                 }
-                .font(ShelfStyle.caption).padding(12)
+                .shelfFont(.caption).padding(12)
             } else if model.tool == .notes, let message = model.feedback {
                 // Feedback participates in layout so it cannot cover task input.
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -299,11 +322,11 @@ struct PanelRootView: View {
                             .buttonStyle(.borderless).accessibilityLabel("Dismiss message")
                     }
                 }
-                .font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary)
+                .shelfFont(.caption).foregroundStyle(ShelfStyle.secondary)
                 .padding(.horizontal, 18).padding(.vertical, 8)
             } else if !model.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 HStack(spacing: 8) {
-                    Text("↑↓ Select").font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary)
+                    Text("↑↓ Select").shelfFont(.caption).foregroundStyle(ShelfStyle.secondary)
                     Spacer(minLength: 4)
                     let results = kit.search(model.query, scope: model.searchScope)
                     if let result = results.first(where: { $0.id == model.selection }) ?? results.first {
@@ -321,7 +344,7 @@ struct PanelRootView: View {
                     footerBar(showsStatus: false, showsPrimary: true, compactPrimary: true)
                     footerBar(showsStatus: false, showsPrimary: false)
                 }
-                .padding(.horizontal, 12).frame(height: model.tool == .notes ? 30 : 48)
+                .padding(.horizontal, 12).frame(minHeight: model.tool == .notes ? 30 : 48)
             }
         }
         .background(ShelfStyle.raised.opacity(0.6))
@@ -382,7 +405,7 @@ struct PanelRootView: View {
                 }
             }
         }
-        .font(ShelfStyle.caption).foregroundStyle(ShelfStyle.secondary)
+        .shelfFont(.caption).foregroundStyle(ShelfStyle.secondary)
         .padding(.leading, 6)
         .accessibilityElement(children: .combine)
     }
@@ -473,7 +496,7 @@ struct PanelRootView: View {
                         .opacity(showingPinFeedback ? 0 : 1)
                     if showingPinFeedback {
                         Text(shell.isPinned ? "Pin on" : "Pin off")
-                            .font(ShelfStyle.caption).fixedSize()
+                            .shelfFont(.caption).fixedSize()
                             .transition(.opacity)
                     }
                 }
@@ -491,14 +514,7 @@ struct PanelRootView: View {
                 showingPinFeedback = false
             }
             Menu {
-                Picker("Appearance", selection: Binding(get: { shell.preferences.appearance }, set: shell.setAppearance)) {
-                    ForEach(PanelAppearance.allCases) { appearance in Text(appearance.title).tag(appearance) }
-                }
-                Toggle("Full height", isOn: Binding(get: { shell.preferences.fullHeight }, set: shell.setFullHeight))
-                Picker("Screen edge", selection: Binding(get: { shell.preferences.edge }, set: shell.setEdge)) {
-                    ForEach(ScreenEdge.allCases) { edge in Text(edge.title).tag(edge) }
-                }
-                Button("Reset panel size", action: shell.resetPanelSize)
+                PanelSettings(shell: shell)
                 Divider()
                 Button("Quit Nivlet") { NSApp.terminate(nil) }
             } label: {
@@ -532,9 +548,9 @@ struct PanelRootView: View {
                 Image(systemName: model.isFeedbackError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
                     .foregroundStyle(model.isFeedbackError ? Color.orange : ShelfStyle.success)
                     .accessibilityHidden(true)
-                Text(message).font(.system(size: 12.5, weight: .medium)).fixedSize(horizontal: false, vertical: true)
+                Text(message).shelfFont(size: 12.5, weight: .medium).fixedSize(horizontal: false, vertical: true)
                 if model.isFeedbackError {
-                    Button { model.dismissFeedback() } label: { Image(systemName: "xmark").font(.system(size: 10, weight: .bold)) }
+                    Button { model.dismissFeedback() } label: { Image(systemName: "xmark").shelfFont(size: 10, weight: .bold) }
                         .buttonStyle(.borderless).accessibilityLabel("Dismiss message").shelfPointer()
                 }
             }
@@ -558,7 +574,7 @@ private struct ActionsPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             HStack {
-                Text("ACTIONS").font(ShelfStyle.eyebrow).tracking(0.7).foregroundStyle(ShelfStyle.secondary)
+                Text("ACTIONS").shelfFont(.eyebrow).tracking(0.7).foregroundStyle(ShelfStyle.secondary)
                 Spacer()
                 Keycap("esc")
             }
@@ -575,14 +591,14 @@ private struct ActionsPanel: View {
                                 command.perform()
                             } label: {
                                 HStack(spacing: 10) {
-                                    Image(systemName: command.symbol).font(.system(size: 12, weight: .medium)).frame(width: 16)
+                                    Image(systemName: command.symbol).shelfFont(size: 12, weight: .medium).frame(width: 16)
                                     Text(command.title).lineLimit(1)
                                     Spacer(minLength: 12)
                                     if !command.keys.isEmpty { Keycap(keys: command.keys) }
                                 }
                                 .foregroundStyle(command.destructive ? AnyShapeStyle(Color.red) : AnyShapeStyle(ShelfStyle.ink))
                                 .opacity(command.enabled ? 1 : 0.45)
-                                .padding(.horizontal, 8).frame(height: 30)
+                                .padding(.horizontal, 8).padding(.vertical, 6).frame(minHeight: 30)
                                 .background(index == model.actionIndex && command.enabled ? ShelfStyle.keycap : .clear,
                                             in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                                 .contentShape(Rectangle())
@@ -624,11 +640,15 @@ private struct RailButtonBody: View {
     @State private var hovered = false
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.isFocused) private var focused
     var body: some View {
         configuration.label
             .foregroundStyle(hovered && !selected ? ShelfStyle.ink : ShelfStyle.secondary)
             .opacity(enabled ? 1 : 0.4)
             .background(selected ? .clear : hovered ? ShelfStyle.keycap : resting, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay {
+                if focused { RoundedRectangle(cornerRadius: 10).strokeBorder(ShelfStyle.focusRing, lineWidth: 2).allowsHitTesting(false) }
+            }
             .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.96 : 1)
             .animation(reduceMotion ? nil : ShelfStyle.feedback, value: hovered)

@@ -8,7 +8,7 @@ struct ReferenceImportResults: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Imports · \(kit.importResults.filter { $0.state == .saved }.count) of \(kit.importResults.count) saved")
-                    .font(ShelfStyle.caption.weight(.semibold)).accessibilityAddTraits(.isHeader)
+                    .shelfFont(.caption, weight: .semibold).accessibilityAddTraits(.isHeader)
                 Spacer(minLength: 0)
                 if !kit.failedImportIDs.isEmpty {
                     Button("Retry failed") { Task { await kit.retryImports(kit.failedImportIDs) } }
@@ -46,7 +46,7 @@ struct ReferenceImportResults: View {
             }
             .frame(maxHeight: 140)
         }
-        .font(ShelfStyle.caption).padding(12).shelfWell(radius: 10)
+        .shelfFont(.caption).padding(12).shelfWell(radius: 10)
         .padding(.horizontal, 14).padding(.bottom, 10)
     }
 

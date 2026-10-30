@@ -23,7 +23,7 @@ enum ShelfStyle {
     static let sheen = adaptive(light: NSColor(white: 1, alpha: 0.9), dark: NSColor(white: 1, alpha: 0.13))
     static let ink = Color(nsColor: .labelColor)
     static let secondary = Color(nsColor: .labelColor).opacity(0.72)
-    static let tertiary = Color(nsColor: .labelColor).opacity(0.5)
+    static let tertiary = Color(nsColor: .labelColor).opacity(0.66)
     static let border = Color(nsColor: .separatorColor)
     static let success = Color(red: 0.19, green: 0.78, blue: 0.45)
     static let favourite = Color(red: 1.0, green: 0.76, blue: 0.18)
@@ -34,12 +34,6 @@ enum ShelfStyle {
     // A custom 2 pt outline needs its opaque variant to stay visible.
     static let focusRing = Color(nsColor: NSColor.keyboardFocusIndicatorColor.withAlphaComponent(1))
 
-    static let body = Font.system(size: 13)
-    static let caption = Font.system(size: 11.5)
-    static let title = Font.system(size: 13.5, weight: .semibold)
-    static let heading = Font.system(size: 15, weight: .semibold)
-    static let display = Font.system(size: 19, weight: .semibold)
-    static let eyebrow = Font.system(size: 10.5, weight: .semibold)
 
     static let radius: CGFloat = 18
     static let rowRadius: CGFloat = 10
@@ -123,7 +117,7 @@ struct Keycap: View {
         HStack(spacing: 2) {
             ForEach(Array(keys.enumerated()), id: \.offset) { _, key in
                 Text(key)
-                    .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
                     .lineLimit(1).fixedSize()
                     .frame(minWidth: 17, minHeight: 17)
                     .padding(.horizontal, key.count > 1 ? 4 : 0)
@@ -215,17 +209,19 @@ private struct ShelfButtonBody: View {
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.isFocused) private var focused
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: compact ? 7 : 9, style: .continuous)
         configuration.label
-            .font(ShelfStyle.body.weight(.medium))
+            .shelfFont(.body, weight: .medium)
             .foregroundStyle(enabled ? ShelfStyle.ink : ShelfStyle.tertiary)
             .padding(.horizontal, compact ? 7 : 11)
             .padding(.vertical, compact ? 5 : 7)
             .background(hovered ? ShelfStyle.keycap : filled ? ShelfStyle.raised : .clear, in: shape)
             .overlay {
-                if contrast == .increased { shape.strokeBorder(ShelfStyle.ink, lineWidth: 1).allowsHitTesting(false) }
+                if focused { shape.strokeBorder(ShelfStyle.focusRing, lineWidth: 2).allowsHitTesting(false) }
+                else if contrast == .increased { shape.strokeBorder(ShelfStyle.ink, lineWidth: 1).allowsHitTesting(false) }
             }
             .contentShape(shape)
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.96 : 1)
@@ -246,14 +242,15 @@ private struct PrimaryButtonBody: View {
     @State private var hovered = false
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.isFocused) private var focused
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
         configuration.label
-            .font(ShelfStyle.body.weight(.semibold))
+            .shelfFont(.body, weight: .semibold)
             .foregroundStyle(enabled ? ShelfStyle.primaryText : ShelfStyle.secondary)
             .padding(.horizontal, 14).padding(.vertical, 9)
             .background(enabled ? AnyShapeStyle(ShelfStyle.primaryFill.opacity(hovered ? 0.86 : 1)) : AnyShapeStyle(ShelfStyle.raised), in: shape)
-            .overlay { shape.strokeBorder(enabled ? .clear : ShelfStyle.hairline, lineWidth: 1).allowsHitTesting(false) }
+            .overlay { shape.strokeBorder(focused ? ShelfStyle.focusRing : enabled ? .clear : ShelfStyle.hairline, lineWidth: focused ? 2 : 1).allowsHitTesting(false) }
             .contentShape(shape)
             .shadow(color: .black.opacity(enabled ? 0.18 : 0), radius: 6, y: 2)
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.96 : 1)
@@ -279,9 +276,9 @@ struct ShelfSection<Content: View>: View {
                 withAnimation(reduceMotion ? nil : ShelfStyle.settle) { expanded.toggle() }
             } label: {
                 HStack(spacing: 6) {
-                    Text(title.uppercased()).font(ShelfStyle.eyebrow).tracking(0.7)
-                    Text(count, format: .number).font(ShelfStyle.eyebrow).monospacedDigit()
-                        .foregroundStyle(ShelfStyle.tertiary)
+                    Text(title).shelfFont(.eyebrow)
+                    Text(count, format: .number).shelfFont(.caption).monospacedDigit()
+                        .foregroundStyle(ShelfStyle.secondary)
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.down").font(.system(size: 8.5, weight: .bold))
                         .rotationEffect(.degrees(expanded ? 0 : -90))
@@ -311,20 +308,34 @@ struct ShelfEmptyState: View {
     var showsNewShortcut = false
     var action: () -> Void
     var body: some View {
-        VStack(spacing: 16) {
-            ZStack {
-                if let tool {
-                    Circle().fill(tool.tint.opacity(0.22)).frame(width: 96, height: 96).blur(radius: 24)
-                    ToolTile(tool: tool, symbol: symbol, size: 52)
-                } else {
-                    Image(systemName: symbol).font(.system(size: 28, weight: .light)).foregroundStyle(ShelfStyle.secondary)
-                        .frame(width: 52, height: 52).shelfWell(radius: 15)
-                }
+        GeometryReader { geometry in
+            ScrollView {
+                contents(compact: geometry.size.height < 300).frame(maxWidth: .infinity).frame(minHeight: geometry.size.height)
             }
-            .accessibilityHidden(true)
-            VStack(spacing: 6) {
-                Text(title).font(ShelfStyle.heading)
-                Text(detail).font(ShelfStyle.body).foregroundStyle(ShelfStyle.secondary)
+        }
+    }
+
+    private func contents(compact: Bool) -> some View {
+        VStack(spacing: 12) {
+            if !compact {
+                ZStack {
+                    if let tool {
+                        RoundedRectangle(cornerRadius: 12).fill(ShelfStyle.keycap)
+                            .frame(width: 54, height: 44).rotationEffect(.degrees(-12)).offset(x: -8, y: -3)
+                        RoundedRectangle(cornerRadius: 12).fill(ShelfStyle.raised)
+                            .frame(width: 54, height: 44).rotationEffect(.degrees(9)).offset(x: 7, y: 2)
+                        Image(systemName: symbol).font(.system(size: 22, weight: .medium))
+                            .foregroundStyle(tool.tint).frame(width: 54, height: 54)
+                    } else {
+                        Image(systemName: symbol).font(.system(size: 28, weight: .light)).foregroundStyle(ShelfStyle.secondary)
+                            .frame(width: 52, height: 52).shelfWell(radius: 15)
+                    }
+                }
+                .frame(height: 68).accessibilityHidden(true)
+            }
+            VStack(spacing: 7) {
+                Text(title).shelfFont(.heading)
+                Text(detail).shelfFont(.body).foregroundStyle(ShelfStyle.secondary)
                     .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: 240)
             }
@@ -336,7 +347,7 @@ struct ShelfEmptyState: View {
             }
             .buttonStyle(PrimaryButtonStyle())
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 24).padding(.vertical, 16)
+        .frame(maxWidth: .infinity)
     }
 }

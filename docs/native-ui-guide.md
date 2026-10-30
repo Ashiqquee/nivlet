@@ -8,11 +8,13 @@ A quiet native utility stays beside the user's real work. Borrow the Refbox demo
 
 **Owner-directed visual system (27 October 2026):** a launcher-style surface modelled on the best-designed apps of the past year — see the [research](../references/ui-ux/2026-best-apps/README.md) and [redesign record](implementation/ui-redesign.md). Keep: translucent dark-first material with opaque fallbacks, one accent hue per tool (tiles, glow, progress — never body text), one highlighted row with inline actions, the footer action bar (status · primary `↵` · `Actions ⌘K`), the ⌘K action panel driven by `ShelfCommands`, HUD copy toast, and inverted-ink primary buttons. Shared tokens and components live in `Nivlet/Features/Panel/ShelfStyle.swift`. Don't revert to stock grey cards without an owner decision.
 
+**Owner-directed refinement (30 October 2026):** keep first run visual and optional. Use the original shelf illustration, two starting choices and a separate quick guide; compact/enlarged layouts use shorter copy. Preserve the quieter search, natural-case section labels and readable semantic ink. See the [native redesign and verified captures](implementation/native-redesign.md).
+
 The captured page is a promotional website. Its headline, pricing sections, large typography, purple wallpaper and embedded artwork are not the application's design system.
 
 ## Before changing a surface
 
-Read the requested phase and inspect the relevant screenshot with an image viewer. State which actual capture informed the change. Compare to the product's five-tool scope. For native behavior, read `macos-design-guidelines` and the relevant macOS references from `swiftui-expert-skill`. Check current rules in the matching `apple-hig` reference: `panels`, `windows`, `the-menu-bar`, `menus`, `drag-and-drop`, `focus-and-selection` or `materials`. It reflects macOS 27; the older skill does not.
+Read the requested phase and inspect the relevant screenshot with an image viewer. State which actual capture informed the change. Compare to the product's four-tool scope. For native behavior, read `macos-design-guidelines` and the relevant macOS references from `swiftui-expert-skill`. Check current rules in the matching `apple-hig` reference: `panels`, `windows`, `the-menu-bar`, `menus`, `drag-and-drop`, `focus-and-selection` or `materials`. It reflects macOS 27; the older skill does not.
 
 Use the existing `better-*` owner for focused improvements. Read only needed supporting files. A complete interface audit may use `better-interface`; ordinary feature work does not need a ritual full audit or unrelated redesign.
 

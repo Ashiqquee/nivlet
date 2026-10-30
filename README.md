@@ -4,7 +4,7 @@ A native Mac edge panel that keeps reusable prompts (with optional fill-in blank
 
 Click a small screen-edge tab, open your local pocket, then explicitly copy text or drag a reference file into your working application.
 
-**Status:** Native development build with a full-height edge shelf and persistent project pockets. Phases 2–5 pass their local gates: durable prompts/scratchpads, named blanks, original-file references, scoped search, pocket recovery, portable export/import-as-new restore and safe retention. Build and tests pass (113 tests, 200 cases). See the [Phase 5 evidence](docs/implementation/phase5-recovery.md), [archive format and fixtures](docs/archive-format.md), [Phase 4 evidence](docs/implementation/phase4-pockets.md) and earlier phase records. Licensing and remaining native release checks are incomplete. The owner selected Nivlet on 27 October 2026.
+**Status:** Native development build with a full-height edge shelf and persistent project pockets. Phases 2–5 pass their local gates: durable prompts/scratchpads, named blanks, original-file references, scoped search, pocket recovery, portable export/import-as-new restore and safe retention. Build and tests pass (124 tests, 213 cases; plus 9 distribution-tool tests). See the [Phase 5 evidence](docs/implementation/phase5-recovery.md), [archive format and fixtures](docs/archive-format.md), [Phase 4 evidence](docs/implementation/phase4-pockets.md) and earlier phase records. Remaining native release checks are incomplete. The owner selected Nivlet on 27 October 2026.
 
 ## First-release scope
 
@@ -19,9 +19,11 @@ Instructions and prompts were merged into one Prompts list on 27 October 2026 (o
 
 Working features are designed to run locally and offline. No model/provider API, API key or AI subscription is required. Users control every text/file transfer; automatic chat reading, clipboard monitoring and auto-paste/send are outside v1.
 
-Distribution is planned through the owner's website with a one-time purchase. Price, trial limits, licence terms, visual identity and final compatibility remain proposals in the requirements.
+Nivlet is free: no purchase, trial, licence or account (owner decision, 30 October 2026). Optional support goes through [Buy Me a Coffee](https://buymeacoffee.com/ashiqquee). Distribution is a signed download from the marketing site in [`website/`](website/README.md). Visual identity and final compatibility remain proposals in the requirements.
 
 ## Documentation
+
+Phase 7 adds [distribution tooling and manual update/recovery instructions](docs/distribution.md). [Distribution evidence](docs/implementation/phase7-distribution.md) distinguishes the verified local candidate from the pending Developer ID, notarization and clean-Mac gates.
 
 | Document | Purpose |
 |---|---|

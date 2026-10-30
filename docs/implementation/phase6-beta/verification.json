@@ -1,0 +1,13 @@
+{
+  "result": "Passed",
+  "passedTests": 121,
+  "failedTests": 0,
+  "skippedTests": 0,
+  "runtimeWarnings": [],
+  "passedCases": 209,
+  "resultBundle": "build/DerivedData/Logs/Test/Test-Nivlet-2026.10.30_15-38-49-+0530.xcresult",
+  "os": "macOS 26.6.2 (25G83)",
+  "hardware": "Apple M3 MacBook Air, arm64",
+  "sdk": "macOS 27",
+  "language": "Swift 6, MainActor default isolation"
+}

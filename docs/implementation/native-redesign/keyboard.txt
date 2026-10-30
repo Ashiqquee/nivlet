@@ -1,0 +1,41 @@
+PASS Review controls available
+PASS Review app owns keyboard input
+PASS Panel available before keyboard reopen
+PASS Find Collapse
+PASS Press Collapse
+PASS Tucked before keyboard reopen
+PASS Keyboard reopen shows panel
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Command-F focuses search
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Search results update
+PASS Review app owns keyboard input
+PASS Escape clears query first
+PASS Review app owns keyboard input
+PASS Command-N focuses title
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Tab reaches prompt editor
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Command-S saves prompt
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Return opens selected result preview
+PASS Review app owns keyboard input
+PASS Native editor, save, preview and copy retain exact Unicode and whitespace
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Command-N focuses new to-do
+PASS Review app owns keyboard input
+PASS Review app owns keyboard input
+PASS Return creates accessible checkbox
+PASS Review app owns keyboard input
+PASS Escape tucks root
+PASS Tucking preserves scratchpad

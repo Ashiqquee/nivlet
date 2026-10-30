@@ -62,6 +62,14 @@ final class ShellPreferences {
         didSet { defaults.set(appearance.rawValue, forKey: Key.appearance) }
     }
 
+    var textSize: PanelTextSize {
+        didSet { defaults.set(textSize.rawValue, forKey: Key.textSize) }
+    }
+
+    var hasCompletedIntroduction: Bool {
+        didSet { defaults.set(hasCompletedIntroduction, forKey: Key.introduction) }
+    }
+
     /// Off until the person turns it on.
     var shortcutEnabled: Bool {
         didSet { defaults.set(shortcutEnabled, forKey: Key.shortcutEnabled) }
@@ -81,6 +89,8 @@ final class ShellPreferences {
         showsEdgeTab = defaults.object(forKey: Key.showsEdgeTab) as? Bool ?? true
         shortcutEnabled = defaults.bool(forKey: Key.shortcutEnabled)
         appearance = defaults.string(forKey: Key.appearance).flatMap(PanelAppearance.init(rawValue:)) ?? .system
+        textSize = defaults.string(forKey: Key.textSize).flatMap(PanelTextSize.init(rawValue:)) ?? .standard
+        hasCompletedIntroduction = defaults.bool(forKey: Key.introduction)
     }
 
     func resetPanelSize() {
@@ -98,5 +108,7 @@ final class ShellPreferences {
         static let showsEdgeTab = "shell.showsEdgeTab"
         static let shortcutEnabled = "shell.shortcutEnabled"
         static let appearance = "shell.appearance"
+        static let textSize = "shell.textSize"
+        static let introduction = "shell.introductionCompleted"
     }
 }

@@ -1,55 +1,53 @@
-# Phase 7 — Offline entitlement and installer readiness
+# Phase 7 — Installer readiness and update recovery
 
-Status: **Not started** · Depends on: Phase 6 beta gate and required commercial/signing decisions
+Status: **In progress — local preparation and recovery tests pass; signed distribution gate open** · Depends on: Phase 6 native gate and release signing
 
-[Phase overview](../phases.md) · [Previous](phase6_deliverables.md) · [Next: Phase 8](phase8_deliverables.md)
+> **30 October 2026 — owner decision:** Nivlet is free with optional [Buy Me a Coffee](https://buymeacoffee.com/ashiqquee) support. Entitlement, licence, trial, merchant and payment work is dropped. AC-07 is retired. This phase covers installer trust and update recovery only.
+
+[Phase overview](../phases.md) · [Previous](phase6_deliverables.md) · [Next: Phase 8](phase8_deliverables.md) · [Implementation evidence](../implementation/phase7-distribution.md)
 
 ## Outcome
 
-A release candidate with locally verified paid entitlement, a working test purchase/recovery journey and a signed/notarized installer when release credentials are available. Buying once must not create a recurring dependency for local tools.
+A Developer ID-signed, notarized DMG with stapled tickets and verified manual update/recovery behavior. Local tools stay free and offline. Missing release credentials do not block packaging tooling, storage recovery tests or a concrete acceptance runbook; local ad-hoc builds do not satisfy the distribution gate.
 
-## Decisions and prerequisites
+## Prerequisites
 
-Prepare a concrete decision sheet before external setup: final price within the US$1–3 target or an explicitly raised alternative, currency/tax presentation, merchant eligibility/fees, trial limits, seat policy, refund/recovery tradeoffs and future-upgrade terms.
-
-The PRD proposes US$2 before applicable tax; one person/two personal Macs; and a non-expiring trial with one pocket, 10 prompts and 10 references (instructions were merged into prompts on 27 October 2026). Do not silently turn proposals into final commercial terms. Verify current Indian seller onboarding/payout requirements and exact fees during implementation.
-
-Local verifier, test licences, installer scripts and checkout specifications can be prepared before provider accounts or production credentials exist. Selecting a merchant, spending, issuing real paid licences or making external changes requires the applicable task authorisation; document any specific dependency without blocking independent work.
+- Complete Phase 6's native accessibility, display, focus and compatibility gate before declaring a release candidate ready.
+- Confirm an existing Apple Developer Program membership, Developer ID Application identity, team, final bundle identifier and `notarytool` Keychain profile before production signing. Account creation, spending and external submissions require applicable authorization; none is implied by building a local candidate.
+- Keep the provisional macOS 14 floor. Build only arm64 until Intel support is decided and tested. Record exact tested runtime versions rather than inferring compatibility from compilation.
 
 ## Build sequence
 
-1. Document per-sale economics, supported buyers/currencies, tax/refund responsibilities and recovery process. If the target price does not work, raise that decision; do not quietly add a subscription.
-2. Define a versioned signed licence payload and local verifier using established signature primitives. Put only the verification public key in the app. Keep issuer private keys outside the repository, build artefacts and application.
-3. Support explicit licence-file import, honest entitlement status and offline validation. Base-app paid use has no periodic renewal or expiry tied to server availability/date changes.
-4. Apply agreed trial limits at creation/import boundaries without destroying or trapping existing content. Existing reading/copy/export/recovery must remain available if limits change; define oversized archive import behavior explicitly.
-5. Build a test-only licence issuer/fixtures and test checkout/delivery/recovery flow with the selected provider when authorised. Separate licence recovery data from pocket contents.
-6. Package a Developer ID-signed, notarized DMG with stapled ticket when credentials are available. Check distribution entitlements/settings and a clean-Mac Gatekeeper install.
-7. Test manual signed updates, migration snapshots, rollback and failed-update behavior. Optional automatic updater is not required for v1.
-
-Two-Mac terms cannot be reliably machine-counted by a purely offline verifier without additional mechanisms. Record the chosen trust/enforcement tradeoff instead of claiming impossible enforcement or silently adding recurring activation. Refund revocation has similar offline tradeoffs.
+1. Produce a reproducible Release build and local DMG with honest version/architecture/status, install instructions, manifest and final checksum. Never fall back silently from Developer ID to ad-hoc signing.
+2. Audit Release entitlements, Hardened Runtime, signature identity/team, architecture and deployment floor. Keep credentials outside the app/repo/artifacts. Preserve sandboxed original-file behavior.
+3. Sign the app with Developer ID Application and secure timestamp. Submit to Apple when authorized; require acceptance, staple and validate the app ticket. Package/sign the DMG, notarize it, staple/validate the image ticket and assess trust. Retain failure reports and last-known-good outputs.
+4. Verify the exact DMG through a read-only mount and a disposable installation copy. On a clean Mac, test a quarantined Finder install, first launch, disconnected first launch and relaunch with stapled tickets. Never ask users to disable Gatekeeper.
+5. Test manual signed updates, consistent pre-migration snapshots, whole-library backups, failed-update recovery and downgrade refusal. Retain originals, pending saves and post-update edits for recovery. A database snapshot alone is not a complete backup.
+6. Record concrete commands, environment, hashes, evidence and untested cases. Public launch belongs to Phase 8 and needs separate authorization.
 
 ## Deliverables
 
-- [ ] Reviewed commercial decision sheet and fee economics; merchant choice explicitly recorded.
-- [ ] Signed licence format, issuer key-handling instructions, fixtures and local verification tests.
-- [ ] Offline licence import/status, agreed trial behavior and non-destructive limit handling.
-- [ ] Test checkout → receipt → licence → recovery evidence, without leaking production secrets.
-- [ ] Reproducible installer/signing/notarization instructions and release candidate when credentials permit.
-- [ ] Clean-Mac installation, update/rollback and offline entitlement evidence.
-- [ ] `docs/implementation/phase7-distribution.md`: final choices, dependencies, AC-07 and distribution results.
+- [x] Local Release/DMG tooling with separate ad-hoc and Developer ID modes, manifest/checksum and disposable install-copy verification.
+- [x] Explicit Release sandbox entitlements without debugger access, plus fail-closed artifact/signing checks.
+- [x] Signed/notarized workflow and credential-handling instructions, with explicit submission and retained reports. Production execution remains untested.
+- [x] Manual install/update/rollback runbook with last-known-good retention and non-destructive downgrade policy.
+- [x] Same-schema restart/pending-save/whole-root recovery and future-schema refusal tests; existing migration rollback and original-integrity regression coverage.
+- [ ] Actual Developer ID-signed, notarized, stapled release candidate and successful trust assessments.
+- [ ] Clean-Mac quarantined installation and disconnected first launch evidence.
+- [ ] Previous/new signed binary update, failed replacement and rollback evidence.
+- [ ] Phase 6 native acceptance gate and final runtime compatibility evidence.
+- [x] `docs/implementation/phase7-distribution.md`: free-app scope, environment, results, dependencies and open checks.
 
 ## Verify
 
-AC-07: import a valid paid licence, disconnect, change date/time zone and relaunch. Test valid, tampered, wrong-key, malformed and unsupported licences. Signature failures must not modify or erase working data. No issuer private key ships in the binary.
+Run the complete native regression suite and distribution-tool failure checks. Confirm originals, last-good data, recoverable pending revisions, trash and ownership survive restart/update storage boundaries. Reject newer schemas visibly and without modification. Test actual migration rollback and retained assets. Run packaging verification on the exact built image; tampered/missing artifacts, unrelated signing identities and unexpected permissions must fail.
 
-Test trial ceilings, duplicates, archive imports and entitlement changes against the agreed non-destructive policy. Recovery cannot depend on emailing private pocket content. Refund/recovery behavior must match the stated offline limitations.
-
-On a clean Mac verify installer trust, first launch, offline launch with stapled ticket, existing-data update and failed-update recovery. No normal path should ask users to disable Gatekeeper. Record actual signing/notarization results; local unsigned builds are not equivalent evidence.
+Then execute the [manual acceptance runbook](../distribution.md#manual-release-acceptance) on a clean Mac with production signing: quarantined install, stapled offline launch, existing-data update, failed replacement and compatible rollback. Record exact OS/hardware, versions, signatures, hashes and observations. Unit tests, mounted-copy checks and local signing are distinct evidence; none proves clean-Mac Gatekeeper trust.
 
 ## Exit gate
 
-AC-07 passes, trial/licence terms are resolved, test delivery/recovery works, and the release candidate passes actual signing/install/update checks. Missing production credentials or unresolved economics may leave this phase incomplete while code/test preparation continues.
+Phase 6's native gate passes; the release candidate is actually Developer ID-signed, notarized and stapled; clean-Mac install/offline launch and real signed-update/rollback checks have passing evidence. Missing credentials or hardware may leave this phase incomplete while independent local work is complete. AC-07 and all commercial prerequisites are dropped.
 
 ## Scope boundary
 
-No subscription, AI credits, cloud library, hidden periodic licence checks or public launch during this phase. A provider test flow is not proof of live sales.
+No entitlement system, trial limits, account, checkout, recurring validation, cloud library or public launch. Automatic updating is optional and is not implemented for v1. No membership purchase, credential import or external submission occurs as part of local verification.

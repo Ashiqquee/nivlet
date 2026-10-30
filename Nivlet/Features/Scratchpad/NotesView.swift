@@ -9,7 +9,7 @@ struct NotesView: View {
     @State private var editingText = false
     @State private var newTask = ""
     @State private var editorFocusRequest = 0
-    @FocusState private var addingTask: Bool
+    @State private var addingTask = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(kit: PocketLibrary, newTaskRequest: Int) {
@@ -24,7 +24,7 @@ struct NotesView: View {
                 if document.taskCount > 0 {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("\(document.completedCount) of \(document.taskCount) done")
-                            .font(ShelfStyle.caption.weight(.semibold)).foregroundStyle(ShelfStyle.secondary).monospacedDigit()
+                            .shelfFont(.caption, weight: .semibold).foregroundStyle(ShelfStyle.secondary).monospacedDigit()
                             .contentTransition(.numericText())
                             .accessibilityAddTraits(.isHeader)
                         Capsule().fill(ShelfStyle.raised).frame(height: 4)
@@ -36,7 +36,7 @@ struct NotesView: View {
                             .accessibilityHidden(true)
                     }
                 } else {
-                    Text("Notes & to-dos").font(ShelfStyle.caption.weight(.semibold)).foregroundStyle(ShelfStyle.secondary)
+                    Text("Notes & to-dos").shelfFont(.caption, weight: .semibold).foregroundStyle(ShelfStyle.secondary)
                         .accessibilityAddTraits(.isHeader)
                 }
                 Spacer(minLength: 4)
@@ -86,12 +86,11 @@ struct NotesView: View {
             .shelfWell(radius: 12)
 
             HStack(spacing: 9) {
-                Image(systemName: "plus.circle.fill").font(.system(size: 15))
+                Image(systemName: "plus.circle.fill").shelfFont(size: 15)
                     .foregroundStyle(PanelTool.notes.tint).accessibilityHidden(true)
-                TextField("Add a to-do", text: $newTask)
-                    .textFieldStyle(.plain).focused($addingTask)
+                PlainTextField(text: $newTask, label: "New to-do", placeholder: "Add a to-do",
+                               focusRequest: newTaskRequest, onFocusChange: { addingTask = $0 }, onSubmit: addTask)
                     .accessibilityLabel("New to-do")
-                    .onSubmit(addTask)
                 if !newTask.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Keycap("↵")
                 }
@@ -107,7 +106,7 @@ struct NotesView: View {
         .onChange(of: kit.note) {
             if document.text != kit.note { document = ScratchpadDocument(kit.note) }
         }
-        .onChange(of: newTaskRequest) { editingText = false; addingTask = true }
+        .onChange(of: newTaskRequest) { editingText = false }
     }
 
     private func addTask() {

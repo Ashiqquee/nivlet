@@ -4,6 +4,7 @@ import SwiftUI
 /// An ordinary native text view with undo and selection, without the smart
 /// punctuation substitutions that would silently rewrite prompts or pasted code.
 struct PlainTextEditor: NSViewRepresentable {
+    @Environment(\.panelTextScale) private var textScale
     @Binding var text: String
     let label: String
     var lineSpacing: CGFloat = 4
@@ -31,7 +32,7 @@ struct PlainTextEditor: NSViewRepresentable {
         view.isAutomaticDataDetectionEnabled = false
         view.isContinuousSpellCheckingEnabled = false
         view.drawsBackground = false
-        view.font = .preferredFont(forTextStyle: .body)
+        view.font = .systemFont(ofSize: 13 * textScale)
         view.textColor = .labelColor
         view.insertionPointColor = .labelColor
         view.textContainerInset = NSSize(width: 4, height: 6)
@@ -45,7 +46,7 @@ struct PlainTextEditor: NSViewRepresentable {
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineSpacing = lineSpacing
         view.defaultParagraphStyle = paragraph
-        view.typingAttributes = [.font: NSFont.preferredFont(forTextStyle: .body), .foregroundColor: NSColor.labelColor, .paragraphStyle: paragraph]
+        view.typingAttributes = [.font: NSFont.systemFont(ofSize: 13 * textScale), .foregroundColor: NSColor.labelColor, .paragraphStyle: paragraph]
         view.string = text
         view.setAccessibilityLabel(label)
         view.focusChanged = { [weak coordinator = context.coordinator] focused in coordinator?.parent.onFocusChange(focused) }
@@ -57,6 +58,11 @@ struct PlainTextEditor: NSViewRepresentable {
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         context.coordinator.parent = self
         guard let view = scroll.documentView as? EditorTextView else { return }
+        let font = NSFont.systemFont(ofSize: 13 * textScale)
+        if view.font != font {
+            view.font = font
+            view.typingAttributes[.font] = font
+        }
         view.setAccessibilityLabel(label)
         if context.coordinator.lastFocusRequest != focusRequest {
             context.coordinator.lastFocusRequest = focusRequest

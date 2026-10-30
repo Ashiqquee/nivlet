@@ -1,0 +1,113 @@
+{
+  "method": "Resolve sRGB NSColor label/focus under Aqua/DarkAqua; sample actual native canvas at (40,130) Retina pixels; composite semantic label alpha and token opacity over canvas/raised/selection/keycap surfaces; WCAG relative luminance. Covers these token pairs, not every rendered state or OS accent.",
+  "appearances": {
+    "light": {
+      "canvas_rgb8": [
+        243,
+        243,
+        245
+      ],
+      "pairs": {
+        "canvas": {
+          "primary": 13.799,
+          "secondary": 5.775,
+          "tertiary": 4.794,
+          "focus": 4.462
+        },
+        "raised": {
+          "primary": 14.846,
+          "secondary": 5.95,
+          "tertiary": 4.911,
+          "focus": 4.906
+        },
+        "selection": {
+          "primary": 14.938,
+          "secondary": 5.964,
+          "tertiary": 4.921,
+          "focus": 4.945
+        },
+        "keycap": {
+          "primary": 12.432,
+          "secondary": 5.524,
+          "tertiary": 4.624,
+          "focus": 3.91
+        }
+      },
+      "minimum_text": {
+        "primary": 12.432,
+        "secondary": 5.524,
+        "tertiary": 4.624
+      },
+      "minimum_focus": 3.91
+    },
+    "dark": {
+      "canvas_rgb8": [
+        32,
+        32,
+        34
+      ],
+      "pairs": {
+        "canvas": {
+          "primary": 11.965,
+          "secondary": 6.845,
+          "tertiary": 5.978,
+          "focus": 6.323
+        },
+        "raised": {
+          "primary": 10.4,
+          "secondary": 6.177,
+          "tertiary": 5.449,
+          "focus": 5.398
+        },
+        "selection": {
+          "primary": 9.123,
+          "secondary": 5.583,
+          "tertiary": 4.965,
+          "focus": 4.667
+        },
+        "keycap": {
+          "primary": 8.849,
+          "secondary": 5.452,
+          "tertiary": 4.856,
+          "focus": 4.513
+        }
+      },
+      "minimum_text": {
+        "primary": 8.849,
+        "secondary": 5.452,
+        "tertiary": 4.856
+      },
+      "minimum_focus": 4.513
+    }
+  },
+  "resolved_srgb": {
+    "NSAppearanceNameAqua": {
+      "focus": [
+        0,
+        0.40392157435417175,
+        0.95686274766922,
+        1
+      ],
+      "label": [
+        0,
+        0,
+        0,
+        0.8470588235294118
+      ]
+    },
+    "NSAppearanceNameDarkAqua": {
+      "focus": [
+        0.10196078568696976,
+        0.6627451181411743,
+        1,
+        1
+      ],
+      "label": [
+        1,
+        1,
+        1,
+        0.8470588235294118
+      ]
+    }
+  }
+}

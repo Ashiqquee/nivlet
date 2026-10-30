@@ -16,9 +16,9 @@ A discreet tab at the edge of the Mac screen opens a compact toolkit beside the 
 - No in-app model, provider API, API key, generated prompts or AI subscription. Local tools function offline.
 - Click the edge tab to open; Pin keeps the panel visible. Menu-bar and keyboard access are alternatives.
 - The four first-release tools are the product; the panel is their shared shell.
-- Desired one-time price: US$1–3 for continued base-app use. US$2 before applicable tax is proposed, not final.
+- Price: free (owner decision, 30 October 2026): no purchase, trial, licence or account. Optional support through [Buy Me a Coffee](https://buymeacoffee.com/ashiqquee); no feature depends on it.
 
-“No API” means no model/provider dependency. Checkout, licence delivery and optional signed update checks still need distribution infrastructure. External AI services are separate and may charge their own fees.
+“No API” means no model/provider dependency. A signed download and optional signed update checks still need distribution infrastructure. External AI services are separate and may charge their own fees.
 
 ## 02 · Audience, job and proof
 
@@ -32,7 +32,7 @@ Proposed validation gate with eight target users and non-sensitive sample work:
 
 - At least six complete open → find → copy/fill/attach → return unaided.
 - At least five use the app on three separate days in a week.
-- At least four choose a disclosed US$1–3 purchase when real checkout exists.
+- At least four keep it installed after the week. (Replaces the earlier purchase gate; Nivlet is free as of 30 October 2026.)
 
 These are proposed thresholds, not observed results. Measure manually with consent. No silent analytics or tester outreach is authorised merely by this document.
 
@@ -170,7 +170,7 @@ Proposed: SwiftUI with AppKit bridges for NSPanel, screen geometry, menu bar, fi
 | Asset | Original name, detected type, size, digest, internal relative path, thumbnail |
 | Scratchpad | Pocket ID, plain text, ordered checklist items, revision |
 | Preferences | Edge, display ID, vertical position, size, shortcut, appearance |
-| Recovery | Journal, trash, migration snapshots; licence state separate from working data |
+| Recovery | Journal, trash, migration snapshots |
 
 No provider tokens, chat transcripts or inferred personal profile.
 
@@ -207,7 +207,7 @@ Privacy:
 
 - No default analytics, crash upload, required account or cloud backup.
 - No background chat/clipboard reading, remote content execution or automatic disclosure.
-- Update checks and checkout/licence recovery must not transmit pocket content, names or paths.
+- Update checks must not transmit pocket content, names or paths.
 - Logs redact content; user-initiated diagnostic sharing includes preview.
 - Users choose what to paste/attach to external services.
 
@@ -223,34 +223,30 @@ These are implementation checks to perform, not completed tests.
 | AC-04 Files | Import 20 mixed files, remove sources, restart offline and export. Successful originals match digests. Test current Claude/ChatGPT browser uploads in Safari/Chrome and Mac clients where available; record exact versions/results and Finder fallback. |
 | AC-05 Pockets | Two pockets with similar labels: switch/search/duplicate/move/delete/Undo without unexpected crossover. Notes/view state survive immediate quit/restart. |
 | AC-06 Recovery | Interrupted/disk-full save preserves last good data. Clean-install restore preserves content. Malicious archives fail without out-of-staging writes. |
-| AC-07 Offline entitlement | Import signed paid licence, disconnect, change date/time zone, relaunch. Paid local tools remain usable without server renewal. |
+| AC-07 Offline entitlement | **Dropped 30 October 2026.** Nivlet is free, so there is no licence to verify. |
 | AC-08 Accessibility | Keyboard/VoiceOver completes flow; light/dark, minimum size, enlarged text and reduced motion work; preview/collapse focus predictable. |
 
 Targets, not measurements: warm open under 150 ms p95, search/copy feedback under 100 ms, 200-item pocket opening within one second and near-zero idle CPU on a documented baseline Mac. Stress-test 1,000 items and interrupted imports.
 
-## 11 · Website, payment and licence
+## 11 · Website and support
 
-Proposed journey: website demo → exact features/OS limits → trial DMG → signed/notarized install → sample/blank pocket → website purchase → receipt/signed licence → import in app. Browser checkout only. Disclose that no AI service or automatic agent connection is included and provider fees are not bypassed.
+Nivlet is free (owner decision, 30 October 2026): no purchase, trial, licence or account. Optional support through [Buy Me a Coffee](https://buymeacoffee.com/ashiqquee). The app never asks for money and no feature, limit or update depends on support. This replaces the earlier proposal of a US$1–3 one-time purchase with a limited trial and a signed offline licence; see git history for that text.
 
-US$2 is proposed within US$1–3. Verify Indian seller onboarding/payouts, buyer countries/currencies, taxes, refunds/chargebacks and fixed plus percentage fees before selecting a merchant. Include hosting, support and signing costs. No provider selected. If economics fail, raise the price/model decision explicitly; do not silently add a subscription.
-
-Proposed entitlement: one person, two personal Macs; signed licence verified locally with no periodic server checks. Base features continue without subscription. Future upgrades, eternal OS support and indefinite support are separate promises. Decide abuse, refund revocation and recovery tradeoffs before sale. Test receipt-based recovery with minimal data.
-
-Proposed non-expiring trial: one pocket, 10 prompts, 10 references and full scratchpad/copy/drag. Paid unlock removes limits. Never destroy or lock away existing content if limits change. Trial and seat policy remain open.
+Journey: website demo → exact features/OS limits → signed/notarized DMG → install → sample/blank pocket. Disclose that no AI service or automatic agent connection is included and provider fees are not bypassed. The marketing site lives in `website/` (Next.js); it links to Buy Me a Coffee and the owner's site, [ashique.work](https://ashique.work).
 
 ## 12 · Distribution and build gates
 
 Developer ID-signed/notarized DMG with stapled ticket; test Gatekeeper on a clean Mac. Website download does not eliminate signing/notarization costs. The supplied brief cites [Apple Developer Program](https://developer.apple.com/programs/) and [Developer ID](https://developer.apple.com/developer-id/); verify local charges and existing membership before budgeting.
 
-Manual signed installer updates suffice for v1. Optional signed updater only after verification. Retain last-known-good releases, migration snapshots and rollback instructions. Failed updates must not disable local paid tools. Do not use disabling Gatekeeper as the normal install path.
+Manual signed installer updates suffice for v1. Optional signed updater only after verification. Retain last-known-good releases, migration snapshots and rollback instructions. Failed updates must not disable local tools. Do not use disabling Gatekeeper as the normal install path.
 
 | Gate | Deliverable |
 |---|---|
 | Native feasibility | Edge target, focus/click-away, pin, display/Space recovery, file handoff and signing spike. Record behavior matrix and limits. |
 | Vertical slice | One pocket with all five tools; exact copy, byte integrity and safe persistence. |
 | Polish | Pocket switching/search, favourites/reorder, backup/restore, Undo/trash, accessibility/appearances. Pass checks and measure performance. |
-| Validation/payment | Observe return use; verify low-price economics, recovery/refunds and offline ownership. Outreach needs separate task authorisation. |
-| Website release | Resolve owner choices; real footage, supported Macs/tested destinations, privacy/refund/entitlement policy, support route and signed installer. |
+| Validation | Observe return use. Outreach needs separate task authorisation. |
+| Website release | Resolve owner choices; real footage, supported Macs/tested destinations, privacy policy, support route and signed installer. |
 
 No dates or effort estimates promised; estimate after feasibility against actual capacity. Documentation work does not authorise launch, spending, registration or publication.
 
@@ -259,7 +255,6 @@ No dates or effort estimates promised; estimate after feasibility against actual
 Open decisions:
 
 - Visual identity, domain selection and brand clearance for Nivlet.
-- Final price/currency, merchant, taxes/refunds, trial, seats and future upgrades.
 - macOS floor, Intel support, full-screen/Spaces guarantees after testing.
 - Tab dimensions/defaults, shortcut default (Option-Space conflicts; see §07) and conflict handling, and file-size limits.
 - Template grammar edge cases: lone `{`/`}`, whitespace inside `{{ name }}`, a backslash before a non-brace character, and a literal backslash immediately before an escaped brace. Settle these in Phase 3 before parser tests are written.

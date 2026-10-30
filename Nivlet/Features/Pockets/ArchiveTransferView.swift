@@ -24,10 +24,10 @@ struct ArchiveTransferView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title).font(.headline).accessibilityAddTraits(.isHeader)
+            Text(title).shelfFont(.title).accessibilityAddTraits(.isHeader)
             if case .export = presentation.mode {
-                Text("Can contain private prompts, notes and files. Review before sharing.")
-                    .font(.caption).fixedSize(horizontal: false, vertical: true)
+                Text("May include private material. Review before sharing.")
+                    .shelfFont(.caption).fixedSize(horizontal: false, vertical: true)
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
@@ -36,9 +36,9 @@ struct ArchiveTransferView: View {
                     }
                     if let preview = kit.archivePreview {
                         Text("\(count(preview.names.count, "pocket")) · \(count(preview.promptCount, "prompt")) · \(count(preview.referenceCount, "reference"))")
-                            .font(.subheadline.weight(.semibold))
+                            .shelfFont(.body, weight: .semibold)
                         Text(ByteCountFormatter.string(fromByteCount: Int64(preview.manifest.totalBytes), countStyle: .file) + " of original files")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .shelfFont(.caption).foregroundStyle(.secondary)
                         ForEach(preview.manifest.pockets, id: \.id) { pocket in
                             DisclosureGroup {
                                 VStack(alignment: .leading, spacing: 8) {
@@ -60,12 +60,12 @@ struct ArchiveTransferView: View {
                                     Text("Scratchpad").fontWeight(.semibold)
                                     Text(pocket.scratchpad.isEmpty ? "Empty scratchpad" : pocket.scratchpad).lineLimit(4).foregroundStyle(.secondary)
                                 }
-                                .font(.caption).textSelection(.enabled).padding(.top, 4)
+                                .shelfFont(.caption).textSelection(.enabled).padding(.top, 4)
                             } label: {
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text(pocket.name).font(.subheadline.weight(.semibold))
+                                    Text(pocket.name).shelfFont(.body, weight: .semibold)
                                     Text("\(count(pocket.prompts.count, "prompt")) · \(count(pocket.references.count, "reference")) · scratchpad")
-                                        .font(.caption).foregroundStyle(.secondary)
+                                        .shelfFont(.caption).foregroundStyle(.secondary)
                                 }
                             }
                         }
@@ -81,12 +81,12 @@ struct ArchiveTransferView: View {
                         Text("Live pockets, recoverable trash, Undo, migration backups and active exports retain their originals. Pockets past their seven-day recovery period are removed.").foregroundStyle(.secondary)
                     }
                     if let error = kit.archiveError {
-                        Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.red)
+                        Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(ShelfStyle.ink)
                             .accessibilityLabel(error)
                     }
                     if let message = kit.archiveMessage { Label(message, systemImage: "checkmark.circle") }
                 }
-                .font(.system(size: 13)).fixedSize(horizontal: false, vertical: true)
+                .shelfFont(size: 13).fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             HStack(spacing: 8) {
@@ -113,9 +113,12 @@ struct ArchiveTransferView: View {
             }
             .buttonStyle(.bordered)
         }
-        .padding(20).frame(width: 270, height: 300)
+        .padding(16).shelfFont(.body)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(title)
+        .onChange(of: kit.archiveError) {
+            if let error = kit.archiveError { shell.panelModel.announceValidation(error) }
+        }
         .onAppear {
             shell.focusArchivePreview()
             work = Task {
