@@ -23,6 +23,8 @@ Nivlet is free: no purchase, trial, licence or account (owner decision, 30 Octob
 
 ## Documentation
 
+Phase 8 adds a local [Next.js/Tailwind website](website/README.md), real native sample captures, a [consent-based study kit](docs/validation/README.md) and a [release review packet](docs/release/checklist.md). [Phase 8 evidence](docs/implementation/phase8-release.md) records preparation separately from the still-open validation, signing, native acceptance and publication gates.
+
 Phase 7 adds [distribution tooling and manual update/recovery instructions](docs/distribution.md). [Distribution evidence](docs/implementation/phase7-distribution.md) distinguishes the verified local candidate from the pending Developer ID, notarization and clean-Mac gates.
 
 | Document | Purpose |

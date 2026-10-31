@@ -1,0 +1,62 @@
+{
+  "format_version": 1,
+  "prepared_date": "2026-10-31",
+  "stage": "local-review-only",
+  "release_ready": false,
+  "validation": "not-observed",
+  "publication": "not-performed",
+  "public_download": null,
+  "support_contact": "pending owner review",
+  "price": "free; optional Buy Me a Coffee support",
+  "historical_packaging_specimen": {
+    "directory": "build/Phase7Review",
+    "dmg": "Nivlet-0.1-1-arm64-LOCAL-UNNOTARIZED.dmg",
+    "dmg_sha256": "f648bc87c0650a8d98b75af1f233b4516bdb62b0861ae5556d99c70a467f46da",
+    "dmg_bytes": 1780364,
+    "status": "local-unnotarized",
+    "release_ready": false,
+    "source_commit": "282a0ab8dfe8a32bf08eb01688d52b87ec9a83a0",
+    "source_dirty": true,
+    "version": "0.1",
+    "build": "1",
+    "minimum_macos": "14.0",
+    "architectures": [
+      "arm64"
+    ],
+    "executable_sha256": "cc557bbeb0606eae1275486a1d51ebac0e436ef61a017a5ea661f5530ec21ba0",
+    "entitlements": {
+      "com.apple.security.app-sandbox": true,
+      "com.apple.security.files.user-selected.read-write": true
+    },
+    "evidence_kind": "historical Phase 7 record, not a current release",
+    "artifact_present_at_final_review": false,
+    "sha256_rechecked_this_phase": false,
+    "is_public_download": false
+  },
+  "website": {
+    "source": "website/",
+    "stack": "Next.js App Router / TypeScript / Tailwind CSS",
+    "output": "static export",
+    "media_provenance": "website/public/assets/provenance.json",
+    "status": "local draft; final contact/policies/hosting pending"
+  },
+  "gates": [
+    "Phase 6 native acceptance gate",
+    "Clean-Mac quarantined install and first launch",
+    "Disconnected first launch with stapled tickets",
+    "Real signed previous-release update and rollback",
+    "macOS 14 and macOS 27 runtime compatibility",
+    "Developer ID Application identity/team and existing membership",
+    "Authorized notarization with Keychain profile",
+    "Real signed failed replacement and rollback",
+    "Intel support decision and test evidence",
+    "Eight-person consent-based study and seven-day return evidence",
+    "Final policies, support route and publication authorization"
+  ],
+  "rollback": {
+    "public_previous_installer": null,
+    "policy": "Retain exact signed installer and reviewed website source before launch. If no compatible previous release exists, withdraw download and provide library recovery instructions.",
+    "instructions": "docs/distribution.md"
+  },
+  "evidence": "docs/implementation/phase8-release.md"
+}

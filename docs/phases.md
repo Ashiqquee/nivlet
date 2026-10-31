@@ -44,7 +44,7 @@ Phase 1 must select/configure an existing full Xcode installation or arrange ins
 | [5 — Ownership and recovery](phases/phase5_deliverables.md) | Portable exports, validated restore and migrations | Clean-install round trip and failure recovery pass | 4 | Local gate passed; release compatibility checks remain open |
 | [6 — Usable beta](phases/phase6_deliverables.md) | Polished accessible app with measured compatibility | AC-01–AC-06 and AC-08 have evidence | 5 | In progress; local implementation/measurements recorded, native gate open |
 | [7 — Installer readiness](phases/phase7_deliverables.md) | Signed, notarized release candidate (Nivlet is free) | Install/update recovery passes | 6 | In progress; [local tooling/recovery verified](implementation/phase7-distribution.md), signing/native gates open |
-| [8 — Validation and release](phases/phase8_deliverables.md) | Observed reuse, reviewed release package and authorised launch | Validation evaluated and release checklist resolved | 7; tester/release authorisation | Not started |
+| [8 — Validation and release](phases/phase8_deliverables.md) | Observed reuse, reviewed release package and authorised launch | Validation evaluated and release checklist resolved | 7; tester/release authorisation | In progress; [local website/study/release preparation](implementation/phase8-release.md), validation/publication gates open |
 
 Nivlet is free (owner decision, 30 October 2026), so the earlier payment-fee assessment and Phase 7 payment integration are dropped. No delivery dates are estimated before the native spike.
 

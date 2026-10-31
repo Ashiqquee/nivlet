@@ -1,0 +1,1 @@
+participant_id,consent_version,candidate_version,candidate_build,dmg_sha256,mac_chip,macos_version,destination_app,destination_version,session_date,participant_timezone,workflow,task_id,outcome,elapsed_seconds,first_assistance_seconds,assistance_given,error_category,anonymized_observation

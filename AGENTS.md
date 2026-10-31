@@ -10,6 +10,8 @@ The native shell builds and its unit tests pass. Phase 2's local gate passes: on
 
 ## Read before changing the product
 
+Phase 8 local preparation now includes the Next.js/Tailwind `website/`, original native sample captures, a consent-based study kit and release review packet. See `docs/implementation/phase8-release.md`. No participant validation, production signing or publication is implied; Phase 8 remains incomplete.
+
 1. [Product requirements](docs/nivlet-product-requirements.md) for behavior and release exclusions.
 2. [Architecture](docs/architecture.md) for component boundaries and data integrity.
 3. [Build phases](docs/phases.md) and the requested phase in `docs/phases/` for scope and evidence.

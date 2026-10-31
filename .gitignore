@@ -97,3 +97,10 @@ docs/reference/*
 # Phase 7 distribution evidence.
 !docs/implementation/phase7-distribution.md
 !docs/implementation/phase7-distribution/
+
+# Phase 8 preparation and content-free review evidence.
+!docs/implementation/phase8-release.md
+!docs/implementation/phase8-release/
+
+# Marketing website lives in its own repository.
+/website/

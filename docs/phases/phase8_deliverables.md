@@ -1,54 +1,48 @@
 # Phase 8 — Observed validation and website release
 
-Status: **Not started** · Depends on: Phase 7 release candidate and authorisation for outreach/public release
+Status: **In progress — local preparation implemented; validation and publication open** · Depends on: accepted Phase 7 candidate and authorization for outreach/public release
 
-[Phase overview](../phases.md) · [Previous](phase7_deliverables.md) · [PRD](../nivlet-product-requirements.md)
+[Phase overview](../phases.md) · [Previous](phase7_deliverables.md) · [PRD](../nivlet-product-requirements.md) · [Implementation evidence](../implementation/phase8-release.md)
 
 ## Outcome
 
-Evidence that people can use and return to the app, plus a complete reviewable website/release package. Publish only when the release action is authorised and the required technical/commercial gates are resolved.
+Evidence that people can use and return to Nivlet, plus a reviewable website/release package. Nivlet is **free with optional Buy Me a Coffee support**. There is no checkout, trial, licence, activation or paid-offline-use gate. Instructions merged into Prompts; the product has four tools.
 
 ## Build sequence
 
-1. Prepare a consent-based study with non-sensitive sample work, core task instructions and a manual observation sheet. Prepare recruitment text before any outreach that needs authorisation.
-2. Have eight target users try open → find → copy/fill/attach → return, comparing against their existing Notes/folders/snippets workflow. Distinguish unaided completion from researcher assistance.
-3. Observe return use over a week with consent; do not add silent analytics. Evaluate the PRD's proposed thresholds and record sample limitations.
-4. Evaluate willingness to purchase at the disclosed US$1–3 price. Intent statements are not transactions. Real checkout/purchase evidence requires an authorised live offer; mark it untested if no live checkout exists.
-5. Fix observed friction in the existing five tools, rerunning only affected checks plus required release checks. Do not use weak return use as a reason to add the excluded feature backlog automatically.
-6. Prepare the actual website, footage, installer/download links, supported-Mac list, attachment-compatibility table, pricing/taxes, entitlement/update policy, privacy/refunds, support and licence recovery instructions. Review legal/commercial wording before release; this plan is not legal advice or a final policy.
-7. Reconcile the release checklist against actual build/version/checksum, signing evidence, acceptance report, known limitations and payment/recovery results.
-8. Once authorised, publish the reviewed package, verify the real customer install/purchase journey and retain a rollback/previous-installer route. Do not make a real purchase or send tester messages without applicable authorisation.
+1. Prepare a consent-based study with non-sensitive sample work, neutral core tasks, baseline comparison and a manual observation sheet. Prepare recruitment text before authorized outreach.
+2. Have eight target users try open → find → copy/fill/attach → return. Distinguish unaided success, assistance, failure, skipped tasks and receiving-app refusal.
+3. Observe voluntary return use over seven days with consent and a manual diary. Keep missing data and withdrawals visible; add no silent analytics.
+4. Evaluate the proposed gates: six of eight complete unaided, five use it on three separate dates within seven days, and four choose to keep it installed. Record evidence and limits; purchase intent is retired.
+5. Fix observed friction within Prompts, References, Project pockets and Scratchpad. Rerun affected checks and required release checks without automatically adding excluded features.
+6. Prepare the Next.js/Tailwind website, actual native footage, tested-Mac list, attachment-compatibility table, privacy/support/recovery drafts and free/optional-support wording. Add the actual download only after acceptance. Final publisher/contact/hosting/legal wording requires review.
+7. Reconcile the release checklist and versioned manifest with exact candidate hashes, signatures, acceptance evidence, validation and rollback route.
+8. Once authorized, publish the reviewed package and verify the actual download → clean install → first-run journey. Retain website rollback and trusted compatible installers. Outreach and external submissions are separate actions.
 
 ## Deliverables
 
-- [ ] Anonymised, consent-based observation and return-use report.
-- [ ] Validation decision: proceed, revise/retest or defer, supported by actual evidence.
-- [ ] Real purchase evidence or explicitly untested commercial validation; no invented successes.
-- [ ] Original demo footage showing actual app behavior.
-- [ ] Reviewable website and complete policies/support/recovery information.
-- [ ] Versioned release manifest, signed installer/download integrity and rollback route.
-- [ ] `docs/implementation/phase8-release.md`: technical/commercial gate results, publication status and limitations.
-
-## Validation criteria
-
-The PRD proposes six of eight users complete the flow unaided, five use it on three separate days in a week and four choose a disclosed US$1–3 purchase when real checkout exists. These are proposed decision thresholds, not existing results or universal statistical proof.
-
-Evaluate failures honestly. If repeat use is weak, inspect capture friction, retrieval speed, audience and existing alternatives before broadening scope. If commercial validation cannot yet be performed, keep that gate open rather than claiming all release criteria passed.
+- [x] [Study kit](../validation/README.md), consent/tasks, recruitment draft, observation/diary and report templates prepared; no participants observed.
+- [ ] Anonymized observation and return-use report.
+- [ ] Evidence-supported validation decision: proceed, revise/retest or defer.
+- [x] Original native sample screenshots and screen recording; [provenance](../../website/public/assets/provenance.json).
+- [x] Local [Next.js/Tailwind review website](../../website/README.md), including release status, compatibility and policy/support drafts.
+- [ ] Final reviewed publisher/policies, functioning support route and shipping compatibility information.
+- [x] [Versioned review manifest](../release/review-manifest.json) and [release checklist](../release/checklist.md); these do not certify a release.
+- [ ] Production signed/notarized installer, verified public download integrity and rollback route.
+- [x] [Phase 8 preparation/evidence record](../implementation/phase8-release.md).
 
 ## Release checks
 
-- [ ] AC-01–AC-08 evidence corresponds to the release candidate and supported configurations.
-- [ ] No unresolved data-loss, archive-integrity, focus or paid-offline-use blocker.
-- [ ] Website accurately states the five features, tested limits and separate external AI fees.
-- [ ] Price/trial/seats/refunds/upgrade terms are explicit and consistent with the app.
-- [ ] Signed/notarized download, first run, payment/licence delivery and recovery are verified as far as authorised.
-- [ ] No private user data, production secrets or third-party artwork is shipped accidentally.
-- [ ] Specific public publication has been authorised; prepare materials before requesting it when needed.
+- [ ] AC-01–AC-06 and AC-08 evidence matches the exact release candidate/configurations; AC-07 is retired.
+- [ ] No unresolved data-loss, archive-integrity or focus blocker.
+- [ ] Study results evaluated honestly against the fixed cohort/return-window definitions.
+- [ ] Website accurately states the four tools, tested limits, local privacy, separate external AI fees and optional support.
+- [ ] Signed/notarized download, quarantine-preserving clean-Mac and disconnected first launch verified.
+- [ ] Actual signed update/container continuity and complete-library rollback verified.
+- [ ] No private data, secrets or third-party reference artwork shipped accidentally.
+- [ ] Final support/contact/policy wording reviewed; exact publication authorized.
+- [ ] Authorized live customer journey verified and rollback retained.
 
-## Exit gate and reporting
+## Exit gate
 
-Report preparation, validation and publication separately. “Ready for review” is not “released.” A launch is complete only after authorised publication and verification of the live journey. If user evidence or commercial/technical gates remain unresolved, state them and keep phase status incomplete.
-
-## Scope boundary
-
-No automatic tester outreach, unapproved spending, new subscriptions or launch solely because the plan exists. Optional later features remain outside this release.
+Report preparation, validation and publication separately. Local review is not release readiness. The study, inherited native/distribution checks and specific publication authorization remain required; keep Phase 8 incomplete until they have actual evidence. No automatic outreach, spending, subscriptions or publication follows from this plan.

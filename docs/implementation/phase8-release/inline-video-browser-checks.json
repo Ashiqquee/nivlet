@@ -1,0 +1,103 @@
+{
+  "browser": "156.0.8078.79",
+  "desktop": {
+    "font": "geist, \"geist Fallback\", Arial, sans-serif, Arial, sans-serif",
+    "overflow": false,
+    "dialogs": 0,
+    "coffee": "https://buymeacoffee.com/ashiqquee",
+    "maker": "https://ashique.work/",
+    "images": [
+      {
+        "src": "/support/buy-me-a-coffee.svg",
+        "loaded": false
+      },
+      {
+        "src": "/brand/ashique-favicon.png",
+        "loaded": false
+      }
+    ]
+  },
+  "screenshots": [
+    {
+      "name": "Prompts",
+      "pressed": "true",
+      "image": "/assets/prompts.png"
+    },
+    {
+      "name": "Fill-in blanks",
+      "pressed": "true",
+      "image": "/assets/fill-in-prompt.png"
+    },
+    {
+      "name": "References",
+      "pressed": "true",
+      "image": "/assets/references.png"
+    },
+    {
+      "name": "Scratchpad",
+      "pressed": "true",
+      "image": "/assets/scratchpad.png"
+    }
+  ],
+  "support_images_loaded": true,
+  "video_before_play": {
+    "paused": true,
+    "duration": 14.7,
+    "width": 1440,
+    "height": 900,
+    "src": "http://127.0.0.1:4173/assets/native-demo-guided-v2.mp4",
+    "error": null
+  },
+  "video_playing": {
+    "paused": false,
+    "time": 0.2624,
+    "error": null
+  },
+  "chapter": {
+    "time": 9.5017,
+    "seeking": false,
+    "ready": 4,
+    "buffered": [
+      [
+        0,
+        14.7
+      ]
+    ],
+    "seekable": [
+      [
+        0,
+        14.7
+      ]
+    ]
+  },
+  "video_unmounted": true,
+  "sticky_top": 16,
+  "mobile": {
+    "390": {
+      "width": 720,
+      "height": 1152,
+      "src": "http://127.0.0.1:4173/assets/native-demo-guided-mobile-v2.mp4",
+      "poster": "http://127.0.0.1:4173/assets/native-demo-guided-mobile-v2.jpg",
+      "paused": true,
+      "overflow": false,
+      "error": null,
+      "coffee_overflow": false
+    },
+    "320": {
+      "width": 720,
+      "height": 1152,
+      "src": "http://127.0.0.1:4173/assets/native-demo-guided-mobile-v2.mp4",
+      "poster": "http://127.0.0.1:4173/assets/native-demo-guided-mobile-v2.jpg",
+      "paused": true,
+      "overflow": false,
+      "error": null,
+      "coffee_overflow": false
+    }
+  },
+  "keyboard_focus": {
+    "tag": "BUTTON",
+    "outline": "solid"
+  },
+  "reduced_motion_scroll": "auto",
+  "page_errors": []
+}

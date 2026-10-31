@@ -1,0 +1,110 @@
+{
+  "date": "2026-10-31",
+  "status": "local preparation verified; validation and publication open",
+  "environment": {
+    "hardware": "M3 MacBook Air",
+    "architecture": "arm64",
+    "macos": "26.6.2 (25G83)",
+    "node": "22.21.1",
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "tailwind": "4.3.3",
+    "typescript": "7.0.2"
+  },
+  "checks": {
+    "npm_ci": "passed; 0 reported dependency vulnerabilities",
+    "npm_run_build": "passed; static export",
+    "npm_run_typecheck": "passed",
+    "npm_run_verify": {
+      "status": "passed",
+      "html_files": 9,
+      "local_references_and_anchors": 293,
+      "native_media_hashes": 6,
+      "design_asset_hashes": 15
+    },
+    "supporting_routes": {
+      "privacy": 200,
+      "support": 200,
+      "compatibility": 200,
+      "terms": 200,
+      "releases": 200
+    },
+    "browser": {
+      "engine": "Chrome 156.0.8078.79; isolated headless context via Playwright",
+      "production_static_export": true,
+      "viewports_checked_css_pixels": [
+        1440,
+        390,
+        320
+      ],
+      "horizontal_overflow": false,
+      "font": "Geist loaded locally",
+      "sticky_header_top_px": 16,
+      "all_four_screenshot_buttons": "passed; selected state, image URL and decoded pixels checked",
+      "recording_presentation": "inline; zero dialogs in DOM; screenshot/video switch unmounts video",
+      "media": "14.7 seconds; desktop 1440x900 and mobile 720x1152 sources; both play without media error; initially paused",
+      "chapter_seeking": "References seek reached 9.5 seconds; seekable range 0\u201314.7 seconds",
+      "coffee_and_maker_links": "correct destinations; official cup and actual ashique.work favicon loaded after scrolling into view",
+      "reduced_motion": "emulated reduce; scroll behavior auto",
+      "keyboard_focus": "visible solid outline observed on keyboard-focused button",
+      "javascript_page_errors": 0,
+      "console_errors_and_warnings": "not captured in final headless run",
+      "spoken_screen_reader": "not verified",
+      "full_200_percent_browser_zoom": "not verified",
+      "automated_accessibility_audit": "not run",
+      "evidence": "inline-video-browser-checks.json"
+    },
+    "preview_range_support": "passed; four byte-exact range responses (bounded, offset, suffix, open-ended) and 416 for out-of-range; chapter navigation verified in browser"
+  },
+  "native_media": {
+    "isolated_bundle": "ashique.nivlet.phase8media",
+    "app_build": "passed with reviewed execution outside sandbox",
+    "capture_run": "completed successfully; original 840x1280 sample window",
+    "source_native_changes": false,
+    "recording_fps": 30,
+    "recording_seconds": 21.366667,
+    "recording_bytes": 873889,
+    "audio_streams": 0,
+    "clipboard_writes": false,
+    "production_library_used": false,
+    "provenance": "website/public/assets/provenance.json"
+  },
+  "native_regression_rerun": false,
+  "study": {
+    "participants_observed": 0,
+    "outreach_sent": false,
+    "return_use": "not observed",
+    "decision": "pending evidence"
+  },
+  "distribution": {
+    "new_production_candidate": false,
+    "notarization_submitted": false,
+    "clean_mac_tested": false,
+    "historical_phase7_artifact_present_at_final_review": false
+  },
+  "publication": {
+    "registered_site": false,
+    "deployed": false,
+    "public_download": null
+  },
+  "limitations": [
+    "Phase 6 native acceptance and Phase 7 signing/clean-Mac/update gates remain open",
+    "Study, support contact, final policies and publication need actual evidence/review",
+    "Local build/cache/dependency output was removed externally during work; sources and captured media survived; npm ci and final export checks rerun",
+    "No full Swift suite rerun for website/docs-only work"
+  ],
+  "guided_recording": {
+    "source_unchanged": true,
+    "seconds": 14.7,
+    "fps": 30,
+    "formats": [
+      "1440x900 desktop",
+      "720x1152 mobile"
+    ],
+    "edit_script": "scripts/render_website_demo.py",
+    "edit_decisions": "website/public/assets/native-demo-guided-v2.json",
+    "autoplay": false,
+    "audio": false,
+    "performance_measurement": false
+  }
+}
