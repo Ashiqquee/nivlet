@@ -1,0 +1,83 @@
+{
+  "date": "2026-11-01",
+  "environment": {
+    "os": "macOS 26.6.2 (25G83)",
+    "node": "22.21.1",
+    "browser": "isolated Chrome context, static export on loopback"
+  },
+  "build": {
+    "result": "pass",
+    "commands": [
+      "npm run build",
+      "npm run typecheck",
+      "npm run verify"
+    ],
+    "html_files": 9,
+    "local_references": 325,
+    "native_hashes": 6,
+    "design_media_hashes": 15
+  },
+  "video": {
+    "width": 1440,
+    "height": 900,
+    "duration": 26.966667,
+    "bytes": 719160,
+    "fps": 30,
+    "audio": false,
+    "framing": "Both actual apps stay visible throughout; no sidebar close-ups",
+    "opening": "Verified empty composer and actual first paste from a second recorded take"
+  },
+  "player": {
+    "custom_controls": true,
+    "native_ssr_fallback": true,
+    "initial_paused": true,
+    "preload": "none",
+    "initial_mp4_requests": 0,
+    "chapters": 4,
+    "seek_before_metadata": true,
+    "captions": 8,
+    "fullscreen_includes_controls": true,
+    "escape_exits_fullscreen": true,
+    "keyboard_seek": {
+      "before": 23,
+      "after": 18
+    },
+    "keyboard_focus_visible": true,
+    "replay": true
+  },
+  "responsive": {
+    "widths": [
+      1440,
+      390,
+      320
+    ],
+    "horizontal_overflow": false,
+    "expanded_prompts_fit": true,
+    "minimum_control_button_size": [
+      44,
+      44
+    ],
+    "phone_video_uses_full_desktop_view": true
+  },
+  "copy": {
+    "exact_browser_strings": [
+      true,
+      true
+    ],
+    "browser_clipboard_stubbed": true,
+    "denied_copy_manual_fallback": true,
+    "native_actual_copy_paste_verified_in_source": true
+  },
+  "console": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "not_verified": [
+    "Safari and Firefox",
+    "physical iPhone / native WebKit fullscreen fallback",
+    "spoken VoiceOver",
+    "actual 200% zoom",
+    "full-site accessibility audit",
+    "external destination apps beyond the recorded Codex draft"
+  ]
+}
