@@ -317,6 +317,9 @@ struct PanelSettings: View {
         Toggle("Show edge tab", isOn: Binding(get: { shell.preferences.showsEdgeTab }, set: shell.setShowsEdgeTab))
         Toggle("Global shortcut \(GlobalHotKey.displayName)", isOn: Binding(get: { shell.preferences.shortcutEnabled }, set: shell.setShortcutEnabled))
         if let error = shell.shortcutError { Text(error) }
+        Toggle("Open at login", isOn: Binding(get: { shell.loginItem.isEnabled }, set: shell.loginItem.setEnabled))
+            .disabled(InstallLocation.isRunningFromDiskImage)
+        if let message = shell.loginItem.message { Text(message) }
         Toggle("Full height", isOn: Binding(get: { shell.preferences.fullHeight }, set: shell.setFullHeight))
         Button("Reset panel size", action: shell.resetPanelSize)
         if includesHelp {

@@ -14,7 +14,7 @@ python3 scripts/distribute.py build --local --version 0.1 --build-number 1 --out
 python3 scripts/distribute.py verify --input build/Phase7LocalReview
 ```
 
-The DMG contains `Nivlet.app`, an Applications shortcut and [installation/recovery instructions](distribution-install.txt). Its filename and manifest say `LOCAL-UNNOTARIZED`. It is an internal packaging specimen; do not distribute it as a trusted release. Verification checks its checksum, image integrity, read-only mount and a copy into a disposable Applications directory. It does not launch the production bundle or touch the working library. Ad-hoc signature verification proves bundle integrity, not Gatekeeper acceptance.
+The DMG contains `Nivlet.app`, an Applications shortcut and [installation/recovery instructions](distribution-install.txt). Finder lays out its window with a background and arrow from `scripts/dmg/background.tiff` (regenerate with `xcrun swift scripts/dmg/make_background.swift`), and the volume uses the app icon. Packaging therefore runs in a logged-in GUI session; the first run asks to let the calling app control Finder. Eject any mounted “Nivlet” image first. Its filename and manifest say `LOCAL-UNNOTARIZED`. It is an internal packaging specimen; do not distribute it as a trusted release. Verification checks its checksum, image integrity, read-only mount and a copy into a disposable Applications directory. It does not launch the production bundle or touch the working library. Ad-hoc signature verification proves bundle integrity, not Gatekeeper acceptance.
 
 Only arm64 is built. macOS 14 remains the deployment floor, with macOS 14/27 runtime acceptance still pending; Intel support is unresolved. No universal or full-screen support claim follows from a build.
 

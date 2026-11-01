@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 ROOT = Path(__file__).resolve().parents[1]
 BUNDLE_ID = "ashique.nivlet.Nivlet"
@@ -120,16 +121,86 @@ def new_folder(path):
     return path
 
 
+# Finder window for the mounted image. Positions are icon centres in points and match
+# scripts/dmg/background.tiff (660 × 460, drawn by scripts/dmg/make_background.swift).
+FINDER_LAYOUT = """
+tell application "Finder"
+    tell disk "Nivlet"
+        open
+        set current view of container window to icon view
+        set toolbar visible of container window to false
+        set statusbar visible of container window to false
+        set pathbar visible of container window to false
+        set bounds of container window to {200, 120, 860, 608}
+        set options to icon view options of container window
+        set arrangement of options to not arranged
+        set icon size of options to 112
+        set text size of options to 13
+        set background picture of options to file ".background:background.tiff"
+        set position of item "Nivlet.app" of container window to {170, 190}
+        set position of item "Applications" of container window to {490, 190}
+        set position of item "Install and recovery.txt" of container window to {330, 362}
+        close
+        open
+        delay 1
+        close
+    end tell
+end tell
+"""
+
+
+def saved_layout(mount, *, wait):
+    for _ in range(int(wait * 2)):
+        layout = (mount / ".DS_Store").read_bytes() if (mount / ".DS_Store").is_file() else b""
+        if b"icvp" in layout and layout.count(b"Iloc") >= 3:
+            return True
+        time.sleep(0.5)
+    return False
+
+
+def lay_out(writable):
+    """Has Finder save the window layout and marks the volume's custom icon. Needs a GUI session
+    and permission for the calling app to control Finder."""
+    if Path("/Volumes/Nivlet").exists():
+        raise RuntimeError("Eject the mounted “Nivlet” disk image before packaging; Finder lays out the new one by name.")
+    attached = plistlib.loads(run("/usr/bin/hdiutil", "attach", "-readwrite", "-noverify", "-noautoopen",
+                                  "-plist", writable).stdout)
+    mount = next(Path(entity["mount-point"]) for entity in attached["system-entities"] if "mount-point" in entity)
+    try:
+        if mount != Path("/Volumes/Nivlet"):
+            raise RuntimeError(f"Image mounted at {mount}, not /Volumes/Nivlet.")
+        # On a new volume Finder often keeps the first pass in memory and writes .DS_Store only after
+        # a second; detaching before it is written loses the layout.
+        for _ in range(3):
+            run("/usr/bin/osascript", "-e", FINDER_LAYOUT)
+            if saved_layout(mount, wait=10):
+                break
+        else:
+            raise RuntimeError("Finder did not save the disk image layout.")
+        run("/usr/bin/xcrun", "SetFile", "-a", "C", mount)
+        shutil.rmtree(mount / ".fseventsd", ignore_errors=True)
+        run("/bin/sync")
+    finally:
+        run("/usr/bin/hdiutil", "detach", mount)
+
+
 def package(folder, name, *, identity=None):
     staging = folder / "image-contents"
     staging.mkdir()
+    writable = folder / "layout.dmg"
     try:
         run("/usr/bin/ditto", folder / "Nivlet.app", staging / "Nivlet.app")
         (staging / "Applications").symlink_to("/Applications")
         shutil.copyfile(folder / "Install and recovery.txt", staging / "Install and recovery.txt")
+        (staging / ".background").mkdir()
+        shutil.copyfile(ROOT / "scripts/dmg/background.tiff", staging / ".background/background.tiff")
+        shutil.copyfile(folder / "Nivlet.app/Contents/Resources/AppIcon.icns", staging / ".VolumeIcon.icns")
+        megabytes = int(output("/usr/bin/du", "-sm", staging).split()[0]) + 20
+        run("/usr/bin/hdiutil", "create", "-volname", "Nivlet", "-srcfolder", staging, "-size", f"{megabytes}m",
+            "-format", "UDRW", "-fs", "HFS+", writable)
+        lay_out(writable)
         image = folder / name
-        run("/usr/bin/hdiutil", "create", "-volname", "Nivlet", "-srcfolder", staging,
-            "-format", "UDZO", "-fs", "HFS+", image)
+        run("/usr/bin/hdiutil", "convert", writable, "-format", "UDZO", "-imagekey", "zlib-level=9", "-o", image)
         if identity:
             run("/usr/bin/codesign", "--sign", identity, "--timestamp", image)
             run("/usr/bin/codesign", "--verify", "--strict", image)
@@ -137,6 +208,7 @@ def package(folder, name, *, identity=None):
         return image
     finally:
         shutil.rmtree(staging)
+        writable.unlink(missing_ok=True)
 
 
 def checksums(folder, manifest):
@@ -287,6 +359,8 @@ def verify(args):
                 raise ValueError("Incorrect Applications shortcut in disk image.")
             if (mount / "Install and recovery.txt").read_bytes() != (folder / "Install and recovery.txt").read_bytes():
                 raise ValueError("Installation instructions differ in the disk image.")
+            if not all((mount / part).is_file() for part in (".DS_Store", ".background/background.tiff", ".VolumeIcon.icns")):
+                raise ValueError("Disk image is missing its Finder layout, background or volume icon.")
             # Test the same copy boundary as a Finder installation in a disposable directory.
             installed = temporary / "Applications/Nivlet.app"
             run("/usr/bin/ditto", mount / "Nivlet.app", installed)

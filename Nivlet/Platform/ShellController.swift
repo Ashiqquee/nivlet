@@ -16,6 +16,7 @@ final class ShellController: NSObject {
     let preferences: ShellPreferences
     let kit: PocketLibrary
     let panelModel: PanelModel
+    let loginItem = LoginItem()
 
     private(set) var isOpen = false
     private(set) var showsIntroduction = false

@@ -5,7 +5,7 @@ struct NivletApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        MenuBarExtra("Nivlet", systemImage: "sidebar.right") {
+        MenuBarExtra("Nivlet", image: "MenuBarIcon") {
             MenuBarMenu(shell: appDelegate.shell)
         }
     }
@@ -33,6 +33,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Unit tests run inside the app; they exercise types directly, not the shell windows.
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+        if InstallLocation.isRunningFromDiskImage, InstallLocation.remindToInstall() {
+            NSApp.terminate(nil)
+            return
+        }
         shell.start()
         #if DEBUG
         // App-local appearance override for reproducible native UI captures.

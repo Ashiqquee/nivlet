@@ -1,39 +1,46 @@
-Nivlet — install and recover
+Nivlet — install, update and recover
 
 Nivlet is free. No account, licence or payment is needed.
-This candidate contains an Apple-silicon app. macOS 14 is the provisional floor;
-runtime compatibility and final release acceptance still require testing.
+It needs a Mac with Apple silicon.
 
-Install a signed, notarized release
-1. Open the DMG and drag Nivlet into Applications.
-2. Eject the image. Open Nivlet from Applications.
-3. Nivlet lives in the menu bar and at the screen edge; it has no Dock icon.
+Install
+1. Drag Nivlet onto the Applications folder in this window.
+2. Eject the "Nivlet" disk image (drag it to the Trash or press Eject in Finder).
+3. Open Nivlet from your Applications folder, not from this disk image.
+4. Nivlet lives in the menu bar and in a tab at the edge of your screen.
+   It has no Dock icon. Open it again from Spotlight to show the panel.
 
-A file labelled LOCAL-UNNOTARIZED or SIGNED-UNNOTARIZED is an internal candidate,
-not a trusted public download. Do not disable Gatekeeper to install it.
-If macOS rejects a published release, keep your library and use the previous
-trusted release while the distributor fixes the download.
+If macOS says it could not verify Nivlet
+Early versions are not notarized by Apple yet, so macOS stops the first launch.
+1. Click Done. Do not click Move to Trash.
+2. Open System Settings > Privacy & Security and scroll down to Security.
+3. Next to the message about Nivlet, click Open Anyway, then confirm with
+   your password or Touch ID. You only need to do this once per version.
+On macOS 14, you can instead Control-click Nivlet in Applications and choose
+Open. You never need to turn off Gatekeeper.
 
-Manual update
-1. Export all pockets from Nivlet and keep the export somewhere private.
-2. Resolve any visible save error, then quit Nivlet from its menu-bar menu.
-3. Keep the previous signed installer. Back up the complete local library while
-   Nivlet is closed (including assets, recovery data and database sidecar files).
-4. Open the new signed, notarized DMG and replace Nivlet in Applications.
-5. Eject the image, open the installed copy and check prompts, references and notes.
+Update to a new version
+1. In Nivlet, export all pockets and keep the export somewhere private.
+2. Fix any visible save error, then quit Nivlet from its menu-bar menu.
+3. Open the new disk image and drag Nivlet onto Applications, choosing Replace.
+4. Eject the disk image, open Nivlet and check your prompts, references and notes.
+Replacing the app keeps your library. You never need to delete it to update.
 
-Recovery
-- If the replacement fails before first launch, keep or reinstall the previous
-  trusted app. Replacing the app does not require deleting its local library.
-- If launch or migration fails, preserve the complete library and the error.
-  Never delete the library to make the app start.
-- A previous app may refuse a newer library schema. Do not force it open or copy
-  an old database into a live library. Restore a complete pre-update backup while
-  the app is closed, keeping the failed/current library separately for recovery.
-- A pre-migration SQLite snapshot alone is not a complete backup of originals or
-  later edits. See the developer distribution guide for the recovery procedure.
-- Portable exports restore as new pockets, with a preview; they do not silently
-  replace the current library. Save errors and recovered drafts need explicit review.
+If something goes wrong
+- If a new version won't start, keep your library as it is and reinstall the
+  previous version you trust. Never delete the library to make the app start.
+- An older version may refuse a library that a newer version has updated.
+  That protects your data. Restore a full backup made before the update,
+  with Nivlet closed, and keep the newer library separately.
+- Restoring an export adds its pockets as new pockets after showing a preview.
+  It never silently replaces what you already have.
 
-Working tools stay local and offline. Copy means copied to the clipboard.
-You choose what to paste or attach to another application.
+Uninstall
+Quit Nivlet from its menu-bar menu, then move Nivlet from Applications to the
+Trash. Your library stays in ~/Library/Containers/ashique.nivlet.Nivlet until
+you delete that folder too. Export anything you want to keep first.
+
+Help: ashique.dev.work@gmail.com · https://nivlet.ashique.work/support/
+
+Nivlet's tools work offline and keep your work on your Mac. Copy puts text
+on the clipboard; you choose what to paste or attach in other apps.

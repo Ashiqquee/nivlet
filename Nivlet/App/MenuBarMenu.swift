@@ -17,6 +17,16 @@ struct MenuBarMenu: View {
 
         Divider()
 
+        Button("About Nivlet") {
+            NSApp.activate()
+            NSApp.orderFrontStandardAboutPanel(nil)
+        }
+        Button("Check for Updates…") {
+            NSWorkspace.shared.open(InstallLocation.updatePage())
+        }
+
+        Divider()
+
         Button("Quit Nivlet") {
             NSApp.terminate(nil)
         }
