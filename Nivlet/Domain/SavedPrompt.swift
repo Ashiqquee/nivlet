@@ -20,6 +20,8 @@ nonisolated struct LibrarySnapshot: Identifiable, Equatable, Sendable, Codable {
     var note: String
 
     var view: PocketViewBookmark? = nil
+    /// When each ticked scratchpad task was completed, keyed by trimmed label.
+    var completedTasks: [String: Date] = [:]
     var id: UUID { pocketID }
 
     static var empty: LibrarySnapshot { LibrarySnapshot(pocketID: UUID(), pocketName: "My pocket", prompts: [], references: [], note: "") }

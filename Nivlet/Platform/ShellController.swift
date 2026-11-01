@@ -116,6 +116,14 @@ final class ShellController: NSObject {
         layoutTab()
         if preferences.shortcutEnabled { setShortcutEnabled(true) }
         Task { @concurrent in FileHandoff.standard.removeExports(olderThan: 24 * 60 * 60) }
+        // Completed to-dos leave a day after they were ticked, even while tucked.
+        Task { [weak self] in
+            while true {
+                do { try await Task.sleep(for: .seconds(10 * 60)) } catch { return }
+                guard let self else { return }
+                self.kit.expireCompletedTasks()
+            }
+        }
     }
 
     private func observe(
@@ -156,6 +164,7 @@ final class ShellController: NSObject {
 
         isOpen = true
         openDisplayID = screen.displayID
+        kit.expireCompletedTasks()
         tabPanel?.orderOut(nil)
         present(panel, at: target)
         // Keyboard and menu users get focus in the panel. A tab click leaves the
@@ -439,6 +448,7 @@ final class ShellController: NSObject {
     // MARK: Settings
 
     func libraryDidLoad() {
+        kit.expireCompletedTasks()
         guard kit.isLoaded, !kit.isPreview, !preferences.hasCompletedIntroduction else { return }
         if kit.isBlankLibrary { showIntroduction() }
         else { preferences.hasCompletedIntroduction = true }

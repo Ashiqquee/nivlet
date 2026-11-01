@@ -60,6 +60,27 @@ nonisolated struct ScratchpadDocument {
         lines[index].setCompleted(completed)
     }
 
+    static let completedLifetime: TimeInterval = 24 * 60 * 60
+
+    /// Ticked tasks leave a day after completion. A ticked task without a recorded
+    /// time starts its day now; reopened or reworded tasks lose theirs. Returns
+    /// the completion times still in use, keyed by trimmed task label.
+    mutating func removeExpiredTasks(completedAt times: [String: Date], now: Date) -> [String: Date] {
+        let endsWithoutBreak = lines.last?.ending.isEmpty == true
+        var kept: [String: Date] = [:]
+        lines.removeAll { line in
+            guard line.isCompleted == true else { return false }
+            let key = line.label.trimmingCharacters(in: .whitespaces)
+            let completed = times[key] ?? now
+            if now.timeIntervalSince(completed) >= Self.completedLifetime { return true }
+            kept[key] = completed
+            return false
+        }
+        // Removing the unterminated final line must not leave a new trailing break.
+        if endsWithoutBreak, let last = lines.indices.last { lines[last].ending = "" }
+        return kept
+    }
+
     @discardableResult
     mutating func appendTask(_ title: String) -> Bool {
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)

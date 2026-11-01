@@ -77,6 +77,7 @@ actor LibraryStore {
             let texts = try rows(db, "SELECT id,pocket_id,label,body,favorite,uses_fields FROM text_items ORDER BY position")
             let notes = try rows(db, "SELECT pocket_id,body FROM scratchpads")
             let refs = try rows(db, "SELECT id,pocket_id,label,note,display_name,asset,is_image,favorite,byte_count FROM reference_items ORDER BY position")
+            let completions = try rows(db, "SELECT pocket_id,label,completed_at FROM task_completions")
             for row in pocketRows {
                 guard let id = UUID(uuidString: row[0]) else { throw LibraryStoreError.database("invalid pocket") }
                 var pocket = LibrarySnapshot(pocketID: id, pocketName: row[1], prompts: [], references: [], note: "")
@@ -86,6 +87,10 @@ actor LibraryStore {
                                                      isFavorite: item[4] == "1", usesFields: item[5] == "1"))
                 }
                 pocket.note = notes.first { $0[0] == row[0] }?[1] ?? ""
+                for item in completions where item[0] == row[0] {
+                    guard let timestamp = Double(item[2]), timestamp.isFinite else { throw LibraryStoreError.database("completion date") }
+                    pocket.completedTasks[item[1]] = Date(timeIntervalSince1970: timestamp)
+                }
                 for item in refs where item[1] == row[0] {
                     guard let itemID = UUID(uuidString: item[0]), Self.isDigest(item[5]) else { throw LibraryStoreError.database("invalid asset") }
                     let original = root.appending(path: "assets/\(item[5])/original")
@@ -175,7 +180,7 @@ actor LibraryStore {
             }
             try execute(db, "BEGIN IMMEDIATE")
             do {
-                try execute(db, "DELETE FROM text_items; DELETE FROM reference_items; DELETE FROM scratchpads; DELETE FROM pockets; DELETE FROM library_state;")
+                try execute(db, "DELETE FROM text_items; DELETE FROM reference_items; DELETE FROM scratchpads; DELETE FROM task_completions; DELETE FROM pockets; DELETE FROM library_state;")
                 let all = collection.pockets.map { ($0, Optional<Date>.none) } + collection.trash.map { ($0.pocket, Optional($0.deletedAt)) }
                 for (position, entry) in all.enumerated() {
                     let (pocket, deletedAt) = entry
@@ -187,6 +192,9 @@ actor LibraryStore {
                             [item.id.uuidString, pocketID, "prompt", item.label, item.source, item.isFavorite ? "1" : "0", "\(position)", item.usesFields ? "1" : "0"])
                     }
                     try insert(db, "INSERT INTO scratchpads VALUES (?, ?)", [pocketID, pocket.note])
+                    for (label, completed) in pocket.completedTasks {
+                        try insert(db, "INSERT INTO task_completions VALUES (?, ?, ?)", [pocketID, label, String(completed.timeIntervalSince1970)])
+                    }
                     for (position, item) in pocket.references.enumerated() {
                         let digest = item.originalURL.deletingLastPathComponent().lastPathComponent
                         guard Self.isDigest(digest), item.originalURL.standardizedFileURL == root.appending(path: "assets/\(digest)/original").standardizedFileURL
@@ -293,6 +301,11 @@ actor LibraryStore {
                 try execute(db, "COMMIT")
             } catch { try? execute(db, "ROLLBACK"); throw error }
         }
+        try execute(db, """
+            CREATE TABLE IF NOT EXISTS task_completions (
+                pocket_id TEXT NOT NULL REFERENCES pockets(id), label TEXT NOT NULL,
+                completed_at REAL NOT NULL, PRIMARY KEY (pocket_id, label))
+            """)
         return try work(db)
     }
 

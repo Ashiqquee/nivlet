@@ -99,6 +99,23 @@ final class PocketLibrary {
         } catch { saveState = .failed(error.localizedDescription) }
     }
 
+    /// Records completion times for ticked scratchpad tasks in every live pocket
+    /// and removes those completed at least a day ago.
+    func expireCompletedTasks(now: Date = .now) {
+        guard isLoaded, !isSwitching, !needsRecoveryReview else { return }
+        var updated = false
+        for index in collection.pockets.indices {
+            var document = ScratchpadDocument(collection.pockets[index].note)
+            let times = document.removeExpiredTasks(completedAt: collection.pockets[index].completedTasks, now: now)
+            let text = document.text
+            guard text != collection.pockets[index].note || times != collection.pockets[index].completedTasks else { continue }
+            collection.pockets[index].note = text
+            collection.pockets[index].completedTasks = times
+            updated = true
+        }
+        if updated { changed(debounce: true) }
+    }
+
     @discardableResult
     func savePrompt(id: UUID?, label: String, source: String, favorite: Bool, usesFields: Bool = false) async -> Bool {
         guard isLoaded, !label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -428,7 +445,8 @@ final class PocketLibrary {
         let original = collection.pockets[activeIndex]
         let copy = LibrarySnapshot(pocketID: UUID(), pocketName: original.pocketName + " copy",
             prompts: original.prompts.map { SavedPrompt(label: $0.label, source: $0.source, isFavorite: $0.isFavorite, usesFields: $0.usesFields) },
-            references: original.references.map { copyReference($0, suffix: "") }, note: original.note)
+            references: original.references.map { copyReference($0, suffix: "") }, note: original.note,
+            completedTasks: original.completedTasks)
         collection.pockets.insert(copy, at: activeIndex + 1)
         changed(debounce: true)
         return copy.pocketID

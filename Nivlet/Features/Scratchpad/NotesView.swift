@@ -74,6 +74,7 @@ struct NotesView: View {
                                 ScratchpadLineView(line: line) { completed in
                                     document.setCompleted(completed, id: line.id)
                                     kit.note = document.text
+                                    kit.expireCompletedTasks()
                                 }
                             }
                         }

@@ -64,4 +64,65 @@ struct ScratchpadDocumentTests {
         #expect(reopened.note == "My note\n[x] Ship the draft\n[ ] Check tomorrow")
         #expect(ScratchpadDocument(reopened.note).completedCount == 1)
     }
+
+    @Test("Ticked tasks start a day-long timer and leave once it ends")
+    func expiry() {
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let source = "Notes\r\n[x] Old  \r\n[ ] Open\r\n- [X] Recent"
+        var document = ScratchpadDocument(source)
+        let times = document.removeExpiredTasks(completedAt: ["Recent": start.addingTimeInterval(-60)], now: start)
+        // Untimed ticks start now; nothing has expired yet.
+        #expect(document.text == source)
+        #expect(times == ["Old": start, "Recent": start.addingTimeInterval(-60)])
+
+        let later = start.addingTimeInterval(ScratchpadDocument.completedLifetime - 30)
+        let remaining = document.removeExpiredTasks(completedAt: times, now: later)
+        // The unterminated final line goes without leaving a trailing break.
+        #expect(document.text == "Notes\r\n[x] Old  \r\n[ ] Open")
+        #expect(remaining == ["Old": start])
+
+        let final = document.removeExpiredTasks(completedAt: remaining, now: start.addingTimeInterval(ScratchpadDocument.completedLifetime))
+        #expect(document.text == "Notes\r\n[ ] Open")
+        #expect(final.isEmpty)
+    }
+
+    @Test("Reopening a task forgets its completion time")
+    func reopenResetsTimer() throws {
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        var document = ScratchpadDocument("[x] Task")
+        var times = document.removeExpiredTasks(completedAt: [:], now: start)
+        let task = try #require(document.lines.first)
+        document.setCompleted(false, id: task.id)
+        times = document.removeExpiredTasks(completedAt: times, now: start.addingTimeInterval(3600))
+        #expect(times.isEmpty)
+        document.setCompleted(true, id: task.id)
+        let ticked = start.addingTimeInterval(7200)
+        times = document.removeExpiredTasks(completedAt: times, now: ticked)
+        #expect(times == ["Task": ticked])
+        _ = document.removeExpiredTasks(completedAt: times, now: start.addingTimeInterval(ScratchpadDocument.completedLifetime + 60))
+        #expect(document.text == "[x] Task")
+    }
+
+    @Test("Completion times persist and expired tasks leave every live pocket")
+    func expiryPersistence() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "nivlet-expiry-\(UUID())")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let kit = PocketLibrary(root: root)
+        await kit.load()
+        kit.note = "[x] Done here\n[ ] Keep"
+        let other = try #require(kit.createPocket("Other"))
+        #expect(await kit.switchPocket(to: other))
+        kit.note = "[x] Done there"
+        kit.expireCompletedTasks(now: start)
+        #expect(await kit.flush())
+
+        let reopened = PocketLibrary(root: root)
+        await reopened.load()
+        #expect(reopened.pockets.map(\.completedTasks) == [["Done here": start], ["Done there": start]])
+        reopened.expireCompletedTasks(now: start.addingTimeInterval(ScratchpadDocument.completedLifetime))
+        #expect(await reopened.flush())
+        #expect(reopened.pockets.map(\.note) == ["[ ] Keep", ""])
+        #expect(reopened.pockets.allSatisfy { $0.completedTasks.isEmpty })
+    }
 }
