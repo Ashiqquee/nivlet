@@ -67,12 +67,13 @@ node_modules/
 *.mobileprovision
 *.provisionprofile
 
-# Personal editor/agent settings; keep shared instructions and skills tracked
+# Personal editor/agent settings
 .idea/
 .claude/settings.local.json
 
-# Deliberately tracked: .agents/skills/, docs/, references/, screenshots,
-# capture manifests, shared Xcode schemes, source and dependency lockfiles.
+# Local-only agent skills and third-party reference captures
+/.agents/
+/references/
 
 
 # Keep existing implementation working notes local; retain this phase's evidence.
