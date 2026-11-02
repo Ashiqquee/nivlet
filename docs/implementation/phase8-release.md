@@ -1,6 +1,8 @@
 # Phase 8 — local validation and release preparation
 
-31 October 2026 · **In progress; no participant evidence or public release**
+Updated 2 November 2026 · **In progress; participant validation and final native acceptance remain open**
+
+**Current public download:** version 0.2 (build 8), published with the owner's authorization on 2 November 2026. The live installer matches the verified local candidate. See [0.2 release evidence](phase8-release/0.2-release.md). It remains ad-hoc signed and not notarized; publication does not complete the remaining release gates.
 
 **Current website:** [Geist/dark-theme refinement](phase8-release/website-refinement.md) supersedes the early white/blue site and its captures below. It follows the owner’s Raycast structure reference with Nivlet’s amber palette, existing logo and sticky navigation.
 
