@@ -60,6 +60,14 @@ During native verification, focus initially caused an automatic retry that hid t
 
 ## Limits carried forward
 
+### Version 0.2 recovery compatibility — 2 November 2026
+
+Older pending-save journals omit `LibrarySnapshot.completedTasks`, which was added for to-do expiry. Synthesized decoding required that field despite its default value, preventing startup recovery and leaving pocket switching unavailable. The snapshot decoder now defaults an absent completion map to empty while still requiring the original content fields. Both legacy single-pocket and collection journals (including retained trash and view metadata) have regression coverage through recovery, explicit Retry, switching and restart.
+
+On this Apple-silicon MacBook Air, macOS 26.6.2 (25G83), Xcode 27.1 (27A9275), Swift 6.4 / language mode 6 with MainActor default isolation, the full suite passed: **131 tests / 224 cases**, zero failures, skips or runtime warnings. Result: `build/PocketRecoveryFixVerifiedTests.xcresult`; log: `build/pocket-recovery-fix-tests.log`. The initial sandboxed build could not run compiler macros; the successful run used Xcode outside the execution sandbox. A compiler isolation diagnostic in the decoder extension was corrected before the passing run.
+
+The owner authorized local repair. Private app/database backups remain under ignored `build/`, with no private content committed. Native UI verification loaded the older pending record, committed it with Retry, selected the previously inaccessible pocket and visibly showed that pocket without a save warning. This is local recovery evidence; clean-Mac, Developer ID/notarization and cross-OS acceptance remain open.
+
 No physical power-loss test, whole-volume disk exhaustion or process kill inside the app's own SQLite call was performed. The interruption evidence combines an abruptly exited SQLite writer, injected interruption in the actual store and native recovery on relaunch. Unsaved edits inside the debounce interval can be lost on forced termination; ordinary lifecycle boundaries flush them. Unsubmitted prompt editor text is retained across tuck and protected on ordinary quit, but is not crash-journaled before Save.
 
 External-app paste, full VoiceOver/Full Keyboard Access walks, enlarged text, alternate displays/Spaces and macOS 14/27 runtime behavior remain unverified here. There is one visible pocket; templates and reference imports pulled forward earlier remain unchanged by this phase. Archive/restore, multiple pockets and durable trash remain later work.

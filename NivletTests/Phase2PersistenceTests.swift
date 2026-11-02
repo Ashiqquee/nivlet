@@ -10,6 +10,62 @@ struct Phase2PersistenceTests {
         FileManager.default.temporaryDirectory.appending(path: "nivlet-phase2-\(UUID().uuidString)")
     }
 
+    @Test("Pre-expiry recovery journals preserve pending edits and allow pocket switching", arguments: [false, true])
+    @MainActor func preExpiryRecovery(legacySnapshot: Bool) async throws {
+        let folder = root()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let store = LibraryStore(root: folder)
+        var collection = try await store.loadCollection()
+        let originalID = collection.activePocketID
+        collection.pockets[0].note = "Pending exact text ✅\r\n[ ] Keep me"
+        collection.pockets[0].prompts = [SavedPrompt(label: "Pending prompt", source: "Preserve this source")]
+        collection.pockets[0].view = PocketViewBookmark(tool: .notes, query: "pending")
+        if !legacySnapshot {
+            var other = LibrarySnapshot.empty
+            other.pocketName = "Other project"
+            collection.pockets.append(other)
+            var deleted = LibrarySnapshot.empty
+            deleted.pocketName = "Recoverable project"
+            collection.trash = [TrashedPocket(pocket: deleted, deletedAt: .now)]
+        }
+        let encoded = try legacySnapshot
+            ? JSONEncoder().encode(collection.pockets[0]) : JSONEncoder().encode(collection)
+        var payload = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        if legacySnapshot { payload.removeValue(forKey: "completedTasks") }
+        else {
+            var pockets = try #require(payload["pockets"] as? [[String: Any]])
+            for index in pockets.indices { pockets[index].removeValue(forKey: "completedTasks") }
+            payload["pockets"] = pockets
+            var trash = try #require(payload["trash"] as? [[String: Any]])
+            var deleted = try #require(trash[0]["pocket"] as? [String: Any])
+            deleted.removeValue(forKey: "completedTasks"); trash[0]["pocket"] = deleted
+            payload["trash"] = trash
+        }
+        let json = String(decoding: try JSONSerialization.data(withJSONObject: payload), as: UTF8.self)
+        var db: OpaquePointer?
+        try #require(sqlite3_open(folder.appending(path: "library.sqlite").path, &db) == SQLITE_OK)
+        defer { sqlite3_close(db) }
+        var statement: OpaquePointer?
+        try #require(sqlite3_prepare_v2(db, "INSERT INTO pending_save VALUES (1, ?)", -1, &statement, nil) == SQLITE_OK)
+        defer { sqlite3_finalize(statement) }
+        let binding = json.withCString { sqlite3_bind_text(statement, 1, $0, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self)) }
+        try #require(binding == SQLITE_OK)
+        try #require(sqlite3_step(statement) == SQLITE_DONE)
+
+        let reopened = PocketLibrary(root: folder)
+        await reopened.load()
+        #expect(reopened.isLoaded)
+        #expect(reopened.needsRecoveryReview)
+        #expect(reopened.collection == collection)
+        #expect(await reopened.retrySaving())
+        #expect(try await LibraryStore(root: folder).recoverableCollection() == nil)
+        let destination = try #require(reopened.createPocket("Switch destination"))
+        #expect(await reopened.switchPocket(to: destination))
+        #expect(await reopened.switchPocket(to: originalID))
+        #expect(reopened.note == collection.pockets[0].note)
+        #expect(try await LibraryStore(root: folder).loadCollection() == reopened.collection)
+    }
+
     @Test("The initial pocket is durable and independent libraries have unique identities")
     func initialPocket() async throws {
         let first = root(), second = root()
