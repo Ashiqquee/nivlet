@@ -1,13 +1,24 @@
 import SwiftUI
 
-struct ReferenceImportResults: View {
+struct ReferenceImportRecovery: View {
     let kit: PocketLibrary
     let chooseAgain: (UUID) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    private var pending: [ReferenceImportResult] {
+        kit.importResults.filter {
+            switch $0.state {
+            case .failed, .needsConfirmation: true
+            case .importing, .saved: false
+            }
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Imports · \(kit.importResults.filter { $0.state == .saved }.count) of \(kit.importResults.count) saved")
+                Text("Review files")
                     .shelfFont(.caption, weight: .semibold).accessibilityAddTraits(.isHeader)
                 Spacer(minLength: 0)
                 if !kit.failedImportIDs.isEmpty {
@@ -15,12 +26,12 @@ struct ReferenceImportResults: View {
                         .buttonStyle(ShelfButtonStyle(compact: true)).disabled(kit.isImporting)
                         .fixedSize()
                 }
-                Button { kit.dismissImportResults() } label: { Image(systemName: "xmark") }
-                    .buttonStyle(.borderless).accessibilityLabel("Dismiss import results").disabled(kit.isImporting)
+                Button("Done") { kit.dismissImportResults(); dismiss() }
+                    .disabled(kit.isImporting).keyboardShortcut(.defaultAction)
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
-                    ForEach(kit.importResults) { result in
+                    ForEach(pending) { result in
                         HStack(alignment: .top, spacing: 8) {
                             Image(systemName: symbol(result)).accessibilityHidden(true)
                             VStack(alignment: .leading, spacing: 2) {
@@ -44,19 +55,21 @@ struct ReferenceImportResults: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxHeight: 140)
+            .frame(maxHeight: min(140, CGFloat(pending.count) * 64))
         }
-        .shelfFont(.caption).padding(12).shelfWell(radius: 10)
-        .padding(.horizontal, 14).padding(.bottom, 10)
+        .shelfFont(.body).padding(18).frame(width: 340)
+        .interactiveDismissDisabled(kit.isImporting)
+        .onChange(of: kit.isImporting) {
+            if !kit.isImporting, pending.isEmpty { dismiss() }
+        }
     }
 
     private func symbol(_ result: ReferenceImportResult) -> String {
-        switch result.state { case .saved: "checkmark.circle"; case .importing: "arrow.down.circle"; default: "exclamationmark.triangle" }
+        "exclamationmark.triangle"
     }
     private func message(_ result: ReferenceImportResult) -> String {
         switch result.state {
-        case .importing: "Importing…"
-        case .saved: result.warning ? "Saved · over 100 MB; transfers may take longer." : "Saved"
+        case .importing, .saved: ""
         case .needsConfirmation: "Over 500 MB. Import a copy? Files above 2 GB are refused."
         case .failed(let message): message
         }

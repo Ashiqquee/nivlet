@@ -26,7 +26,10 @@ struct Phase2PersistenceTests {
             collection.pockets.append(other)
             var deleted = LibrarySnapshot.empty
             deleted.pocketName = "Recoverable project"
-            collection.trash = [TrashedPocket(pocket: deleted, deletedAt: .now)]
+            // This test covers legacy recovery, not submicrosecond Date precision.
+            // Unix timestamp conversion can round Date's reference-epoch Double.
+            let deletedAt = Date(timeIntervalSince1970: Date.now.timeIntervalSince1970.rounded(.down))
+            collection.trash = [TrashedPocket(pocket: deleted, deletedAt: deletedAt)]
         }
         let encoded = try legacySnapshot
             ? JSONEncoder().encode(collection.pockets[0]) : JSONEncoder().encode(collection)

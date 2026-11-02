@@ -7,20 +7,15 @@ struct ReferencesView: View {
     let importFiles: () -> Void
     let retryImport: (UUID) -> Void
     @State private var dropTarget = false
+    @State private var showingImportRecovery = false
 
     private var filtered: [ReferenceItem] { ShelfIndex.references(kit: kit, query: model.query) }
 
     var body: some View {
-        VStack(spacing: 0) {
-            if !kit.importResults.isEmpty { ReferenceImportResults(kit: kit, chooseAgain: retryImport).layoutPriority(1) }
-            content
-        }
-    }
-
-    private var content: some View {
         Group {
             if case .reference(let id) = model.inspector, let reference = kit.references.first(where: { $0.id == id }) {
                 ReferenceInspector(kit: kit, reference: reference, model: model)
+                    .id(reference.id)
                     .transition(.opacity.combined(with: .scale(scale: 0.98)))
             } else if kit.references.isEmpty {
                 ShelfEmptyState(symbol: PanelTool.references.symbol, title: "Add your first reference",
@@ -68,6 +63,19 @@ struct ReferencesView: View {
             Task { await kit.importFiles(urls) }
             return true
         } isTargeted: { dropTarget = $0 }
+        .onChange(of: kit.isImporting) {
+            if !kit.isImporting {
+                showingImportRecovery = kit.importResults.contains { result in
+                    switch result.state {
+                    case .failed, .needsConfirmation: true
+                    case .importing, .saved: false
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showingImportRecovery) {
+            ReferenceImportRecovery(kit: kit, chooseAgain: retryImport)
+        }
     }
 }
 
@@ -117,12 +125,16 @@ private struct ReferenceTile: View {
             .accessibilityAddTraits(selected ? .isSelected : [])
             .help("Open preview, or drag a copy of the original file")
             VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 4) {
-                    Text(reference.label).shelfFont(size: 12.5, weight: .semibold).lineLimit(1).help(reference.label)
-                    if reference.isFavorite { Image(systemName: "star.fill").font(.system(size: 9)).foregroundStyle(ShelfStyle.favourite).accessibilityLabel("Favourite") }
+                Button { model.inspector = .reference(reference.id) } label: {
+                    HStack(spacing: 4) {
+                        Text(reference.label).shelfFont(size: 12.5, weight: .semibold).lineLimit(1)
+                        if reference.isFavorite { Image(systemName: "star.fill").font(.system(size: 9)).foregroundStyle(ShelfStyle.favourite).accessibilityLabel("Favourite") }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
                 }
-                Text(reference.displayName).shelfFont(.caption).foregroundStyle(ShelfStyle.secondary).lineLimit(1)
-                    .help(reference.displayName)
+                .buttonStyle(.plain).shelfPointer()
+                .help("Edit label and note for \(reference.label)")
+                .accessibilityLabel("Edit label for \(reference.label)")
                 if kit.referenceIsPending(reference.id) {
                     Label("Not saved", systemImage: "exclamationmark.triangle").shelfFont(.caption).foregroundStyle(.orange)
                 }
@@ -149,7 +161,16 @@ private struct ReferenceInspector: View {
     let model: PanelModel
     @FocusState private var noteFocused: Bool
     @FocusState private var labelFocused: Bool
+    @State private var label: String
     @Environment(\.colorScheme) private var scheme
+
+    init(kit: PocketLibrary, reference: ReferenceItem, model: PanelModel) {
+        self.kit = kit; self.reference = reference; self.model = model
+        // A draft allows Select All → Delete → type without saving a blank label.
+        // The inspector is keyed by reference ID so switching items reseeds it.
+        _label = State(initialValue: reference.label)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack {
@@ -163,11 +184,12 @@ private struct ReferenceInspector: View {
                     VStack(alignment: .leading, spacing: 16) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text("Label").shelfFont(.caption).foregroundStyle(ShelfStyle.secondary)
-                            TextField("Reference label", text: Binding(get: { current.label }, set: { kit.renameReference(id: reference.id, label: $0) }), axis: .vertical)
+                            TextField("Reference label", text: $label, axis: .vertical)
                                 .textFieldStyle(.plain).shelfFont(.display).focused($labelFocused)
+                                .padding(.horizontal, 10).padding(.vertical, 8)
+                                .shelfWell(radius: 9, focused: labelFocused)
                                 .accessibilityLabel("Reference label")
-                            Text(reference.displayName).shelfFont(.caption).foregroundStyle(ShelfStyle.secondary)
-                                .textSelection(.enabled).lineLimit(2)
+                                .onChange(of: label) { kit.renameReference(id: reference.id, label: label) }
                         }
                         ReferenceMedia(reference: reference, thumbnail: false)
                             .frame(maxWidth: .infinity)
@@ -200,7 +222,12 @@ private struct ReferenceInspector: View {
             .overlay(alignment: .top) { Rectangle().fill(ShelfStyle.hairline).frame(height: 1) }
         }
         .onChange(of: noteFocused) { if !noteFocused { kit.flushSoon() } }
-        .onChange(of: labelFocused) { if !labelFocused { kit.flushSoon() } }
+        .onChange(of: labelFocused) {
+            if !labelFocused {
+                if !PromptTemplate.isFilled(label) { label = current.label }
+                kit.flushSoon()
+            }
+        }
         .task(id: reference.id) { await ReferenceActions.prepare(reference, model: model) }
     }
     private var current: ReferenceItem { kit.references.first(where: { $0.id == reference.id }) ?? reference }
